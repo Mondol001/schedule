@@ -31,7 +31,7 @@
     .table td, .table th {
       vertical-align: middle;
     }
-    /* CSS: টেবিলের লম্বা লেখা wrap করার জন্য */
+    /* টেবিলের লম্বা লেখা wrap করার জন্য */
     .table td.wrap-text {
       white-space: normal;
       word-wrap: break-word;
@@ -169,7 +169,7 @@
       </div>
     </div>
 
-    <!-- শিডিউল টেবিল (ক্রমিক কলাম সহ) -->
+    <!-- শিডিউল টেবিল (ক্রমিক কলামসহ) -->
     <div class="table-responsive">
       <table class="table table-bordered" id="scheduleTable">
         <thead class="table-light">
@@ -329,7 +329,7 @@
     const editComments = document.getElementById("editComments");
     const editSubmitBtn = document.getElementById("editSubmitBtn");
 
-    // Action Modal বাটনের রেফারেন্স এবং বর্তমান নির্বাচিত ডকুমেন্ট আইডি
+    // Action Modal এর বাটন এবং বর্তমান নির্বাচিত ডকুমেন্ট আইডি
     const actionEditBtn = document.getElementById("actionEditBtn");
     const actionDeleteBtn = document.getElementById("actionDeleteBtn");
     let currentDocId = null; // থ্রী ডট ক্লিকে নির্বাচিত শিডিউলের ডক আইডি
@@ -339,7 +339,7 @@
     document.getElementById("scheduleDate").value = today;
     filterStartDate.value = today;
 
-    // থিমের সিলেকশন (localStorage থেকে থিম রিডিরেক্ট করা)
+    // থিমের সিলেকশন (localStorage থেকে থিম পড়া)
     const savedTheme = localStorage.getItem('theme') || 'light';
     themeSelect.value = savedTheme;
     if(savedTheme === "dark"){
@@ -409,7 +409,6 @@
 
     // Action Modal এর এডিট বাটনের ক্লিক ইভেন্ট
     actionEditBtn.addEventListener("click", () => {
-      // Action Modal বন্ধ করে এডিট মোডাল খুলুন
       const actionModalEl = document.getElementById("actionModal");
       bootstrap.Modal.getInstance(actionModalEl).hide();
       openEditModal(currentDocId);
@@ -474,11 +473,10 @@
       }
     });
 
-    // রিয়েল-টাইম শিডিউল লোডিং: 
-    // ডিফল্টভাবে filterStartDate (আজকের তারিখ) অনুযায়ী শিডিউল দেখাবে।
+    // রিয়েল-টাইম শিডিউল লোডিং (তারিখ অনুযায়ী সাজানো হচ্ছে)
     function listenSchedules() {
+      // filterStartDate এর মান থাকলে সেই অনুযায়ী ফিল্টার করা হবে, নইলে সকল এন্ট্রি
       let query = db.collection("schedules");
-      // যদি filterStartDate এ কোনো মান থাকে (এখানে পেজ লোডে আজকের তারিখ থাকে)
       if(filterStartDate.value) {
         if(filterEndDate.value) {
           query = query.where("scheduleDate", ">=", filterStartDate.value)
@@ -487,17 +485,19 @@
           query = query.where("scheduleDate", "==", filterStartDate.value);
         }
       }
+      // তারিখ অনুযায়ী ascending (উর্ধ্বক্রমে) সাজানো হচ্ছে
       query = query.orderBy("scheduleDate", "asc");
+
       query.onSnapshot(snapshot => {
         scheduleTableBody.innerHTML = "";
         if (snapshot.empty) {
           scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো রেকর্ড পাওয়া যায়নি</td></tr>`;
           return;
         }
-        let counter = 1;
+        let counter = 1; // সিরিয়াল নম্বর
         snapshot.forEach(doc => {
           const data = doc.data();
-          // client-side partial matching for orderNo and customer (যদি ফিল্টার ফিল্ড ভ্যালু দেয়া থাকে)
+          // ক্লায়েন্ট-সাইড partial matching (অর্ডার নং ও কাস্টমার) ফিল্টারিং
           let match = true;
           if(filterOrder.value && !(data.orderNo && data.orderNo.toLowerCase().includes(filterOrder.value.trim().toLowerCase()))) {
             match = false;
@@ -528,7 +528,7 @@
       }, error => showMessage("ডাটা লোড করতে সমস্যা: " + error.message, true));
     }
 
-    // Filter বাটনের জন্য: ফিল্টার ফিল্ড থেকে মান নিয়ে টেবিল রিফিল্টার করা (এই পদ্ধতি one-time get() ব্যবহার করে)
+    // Filter বাটনের জন্য: ফিল্টার ফিল্ড থেকে মান নিয়ে টেবিল রিফিল্টার করা
     filterBtn.addEventListener("click", () => {
       db.collection("schedules").orderBy("scheduleDate", "asc").get().then(snapshot => {
         let filteredDocs = [];
@@ -536,7 +536,6 @@
           const data = doc.data();
           let match = true;
           
-          // তারিখ অনুযায়ী ফিল্টার
           if(filterStartDate.value) {
             if (!filterEndDate.value) {
               if (data.scheduleDate !== filterStartDate.value) {
@@ -549,11 +548,9 @@
             }
           }
           
-          // অর্ডার নং: partial matching
           if(filterOrder.value && !(data.orderNo && data.orderNo.toLowerCase().includes(filterOrder.value.trim().toLowerCase()))) {
             match = false;
           }
-          // কাস্টমার নাম: partial matching
           if(filterCustomer.value && !(data.customerName && data.customerName.toLowerCase().includes(filterCustomer.value.trim().toLowerCase()))) {
             match = false;
           }
