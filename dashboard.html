@@ -2,7 +2,7 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <title>ইউজার ড্যাশবোর্ড</title>
+  <title>ড্যাশবোর্ড</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     /* Global Styles */
@@ -13,8 +13,8 @@
       padding: 20px;
     }
     .container {
-      max-width: 900px;
-      margin: 20px auto;
+      max-width: 1000px;
+      margin: 0 auto;
       background: #fff;
       padding: 20px;
       border-radius: 8px;
@@ -25,115 +25,69 @@
       margin-bottom: 20px;
       color: #333;
     }
-    .search-filter {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .search-filter input,
-    .search-filter select {
-      width: 48%;
-      padding: 12px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 15px;
-    }
-    .search-filter button {
-      padding: 12px;
-      background: #333;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s;
+    table {
       width: 100%;
-      max-width: 150px;
-      margin: 8px 0;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
-    .search-filter button:hover {
-      background: #555;
-    }
-    .schedule-item {
+    table, th, td {
       border: 1px solid #ddd;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 4px;
     }
-    .schedule-item h3 {
+    th, td {
+      padding: 12px;
+      text-align: left;
+    }
+    .logout {
+      text-align: right;
       margin-bottom: 10px;
-      color: #2d3748;
     }
-    .schedule-item p {
-      margin: 5px 0;
-      color: #555;
-    }
-    textarea {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 15px;
-      resize: vertical;
-    }
-    .schedule-item button {
-      padding: 10px;
-      background: #333;
-      color: #fff;
+    .logout button {
+      background: #c00;
+      padding: 10px 15px;
       border: none;
       border-radius: 4px;
+      color: #fff;
       cursor: pointer;
-      font-size: 15px;
       transition: background 0.3s;
-      margin-top: 5px;
     }
-    .schedule-item button:hover {
-      background: #555;
-    }
-    .link {
-      text-align: center;
-      margin-top: 10px;
-    }
-    .link a {
-      text-decoration: none;
-      color: #333;
-      margin: 0 10px;
+    .logout button:hover {
+      background: #a00;
     }
   </style>
-  <!-- Firebase CDN Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
+  <!-- Firebase CDN Scripts (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="container">
-    <h2>ইউজার ড্যাশবোর্ড: শিডিউলসমূহ</h2>
-    <!-- সার্চ ও ফিল্টার -->
-    <div class="search-filter">
-      <input type="date" id="dashboardSearchDate" placeholder="শিডিউল তারিখ অনুযায়ী সার্চ">
-      <select id="dashboardFilterDropdown">
-        <option value="">ফিল্টার সিলেক্ট করুন</option>
-        <!-- অতিরিক্ত অপশন যোগ করা যাবে -->
-      </select>
-      <button id="dashboardSearchBtn">সার্চ</button>
+    <div class="logout">
+      <button id="logoutBtn">লগআউট</button>
     </div>
+    <h2>ড্যাশবোর্ড: শিডিউল দেখুন</h2>
     
-    <!-- শিডিউল তালিকা -->
-    <div id="scheduleList">
-      <!-- শিডিউল এন্ট্রি এখানে দেখানো হবে -->
-    </div>
-    
-    <div class="link">
-      <a href="index.html">লগইন পেজ</a> | 
-      <a href="admin.html">এডমিন প্যানেল</a>
-    </div>
+    <!-- শিডিউল টেবিল -->
+    <table id="scheduleTable">
+      <thead>
+        <tr>
+          <th>শিডিউল তারিখ</th>
+          <th>অর্ডার নং</th>
+          <th>কাস্টমার নাম</th>
+          <th>কালার</th>
+          <th>কন্টিটি</th>
+          <th>ক্লোজ তারিখ</th>
+          <th>মন্তব্য</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Firestore থেকে রিয়েল-টাইমে শিডিউল লোড হবে -->
+      </tbody>
+    </table>
   </div>
 
   <script>
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    // Firebase configuration (আপনার প্রকল্প অনুযায়ী পরিবর্তন করুন)
+   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyCv7vvtIkbBD-8jKVetErI53SHG-AwnNaI",
   authDomain: "schedule-6daae.firebaseapp.com",
@@ -143,120 +97,59 @@ const firebaseConfig = {
   appId: "1:163930511065:web:2e6e1cb9a709955a1050c8",
   measurementId: "G-0KCNE3REKX"
 };
+
+    // Firebase ইনিশিয়ালাইজেশন
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ইউজার ড্যাশবোর্ডে শিডিউল লোড করা
-    function loadDashboardSchedules() {
-      const scheduleList = document.getElementById("scheduleList");
-      scheduleList.innerHTML = "";
-      db.collection("schedules").orderBy("timestamp", "desc").get()
-      .then(snapshot => {
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const div = document.createElement("div");
-          div.className = "schedule-item";
-          div.innerHTML = `
-            <h3>${data.customerName} (অর্ডার: ${data.orderNo})</h3>
-            <p><strong>তারিখ:</strong> ${data.scheduleDate}</p>
-            <p><strong>কালার:</strong> ${data.color || "-"}</p>
-            <p><strong>কন্টিটি:</strong> ${data.quantity || "-"}</p>
-            <p><strong>ক্লোজ তারিখ:</strong> ${data.closeDate || "-"}</p>
-            <p><strong>মন্তব্য:</strong> ${data.comments || "-"}</p>
-            <div>
-              <textarea id="comment-${doc.id}" placeholder="কমেন্ট লিখুন"></textarea>
-              <button onclick="addComment('${doc.id}')">কমেন্ট জমা দিন</button>
-            </div>
-            <div id="commentsList-${doc.id}"></div>
-          `;
-          scheduleList.appendChild(div);
-          loadComments(doc.id);
-        });
-      })
-      .catch(error => {
-        console.error("ড্যাশবোর্ডে শিডিউল লোড ত্রুটি:", error);
-      });
-    }
-
-    // নির্দিষ্ট শিডিউলের কমেন্ট লোড করা
-    function loadComments(scheduleId) {
-      const commentsListDiv = document.getElementById("commentsList-" + scheduleId);
-      db.collection("schedules").doc(scheduleId).collection("comments")
-        .orderBy("timestamp", "asc").get()
-      .then(snapshot => {
-        commentsListDiv.innerHTML = "";
-        snapshot.forEach(doc => {
-          const commentData = doc.data();
-          const p = document.createElement("p");
-          p.textContent = commentData.text;
-          commentsListDiv.appendChild(p);
-        });
-      })
-      .catch(error => {
-        console.error("কমেন্ট লোড ত্রুটি:", error);
-      });
-    }
-
-    // নির্দিষ্ট শিডিউলে কমেন্ট যোগ করা
-    function addComment(scheduleId) {
-      const commentText = document.getElementById("comment-" + scheduleId).value;
-      if (commentText.trim() === "") {
-        alert("কমেন্ট ফাঁকা থাকতে পারে না");
-        return;
-      }
-      db.collection("schedules").doc(scheduleId).collection("comments").add({
-        text: commentText,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(() => {
-        document.getElementById("comment-" + scheduleId).value = "";
-        loadComments(scheduleId);
-      })
-      .catch(error => {
-        alert("কমেন্ট যোগ ত্রুটি: " + error.message);
-      });
-    }
-
-    // ড্যাশবোর্ড সার্চ ফাংশন
-    document.getElementById("dashboardSearchBtn").addEventListener("click", () => {
-      const searchDate = document.getElementById("dashboardSearchDate").value;
-      const scheduleList = document.getElementById("scheduleList");
-      if (searchDate && scheduleList) {
-        scheduleList.innerHTML = "";
-        db.collection("schedules").where("scheduleDate", "==", searchDate)
-          .orderBy("timestamp", "desc").get()
-          .then(snapshot => {
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              const div = document.createElement("div");
-              div.className = "schedule-item";
-              div.innerHTML = `
-                <h3>${data.customerName} (অর্ডার: ${data.orderNo})</h3>
-                <p><strong>তারিখ:</strong> ${data.scheduleDate}</p>
-                <p><strong>কালার:</strong> ${data.color || "-"}</p>
-                <p><strong>কন্টিটি:</strong> ${data.quantity || "-"}</p>
-                <p><strong>ক্লোজ তারিখ:</strong> ${data.closeDate || "-"}</p>
-                <p><strong>মন্তব্য:</strong> ${data.comments || "-"}</p>
-                <div>
-                  <textarea id="comment-${doc.id}" placeholder="কমেন্ট লিখুন"></textarea>
-                  <button onclick="addComment('${doc.id}')">কমেন্ট জমা দিন</button>
-                </div>
-                <div id="commentsList-${doc.id}"></div>
-              `;
-              scheduleList.appendChild(div);
-              loadComments(doc.id);
-            });
-          })
-          .catch(error => {
-            console.error("সার্চ ত্রুটি:", error);
-          });
-      } else {
-        loadDashboardSchedules();
+    // ইউজার অথেন্টিকেশন যাচাই: লগইন না থাকলে লগইন পেজে রিডাইরেক্ট হবে
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html"; // লগইন পেজ (index.html)
       }
     });
 
-    // পেজ লোডের সময় শিডিউল লোড করা
-    loadDashboardSchedules();
+    // লগআউট ফাংশন
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      }).catch(error => {
+        console.error("লগআউট ত্রুটি:", error);
+      });
+    });
+
+    // রিয়েল-টাইম শিডিউল লোডিং (onSnapshot)
+    function loadSchedules() {
+      db.collection("schedules").orderBy("timestamp", "desc")
+        .onSnapshot(snapshot => {
+          const tableBody = document.querySelector("#scheduleTable tbody");
+          tableBody.innerHTML = "";
+          if (snapshot.empty) {
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">কোনো শিডিউল পাওয়া যায়নি</td></tr>`;
+          } else {
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${data.scheduleDate || ""}</td>
+                <td>${data.orderNo || ""}</td>
+                <td>${data.customerName || ""}</td>
+                <td>${data.color || ""}</td>
+                <td>${data.quantity || ""}</td>
+                <td>${data.closeDate || ""}</td>
+                <td>${data.comments || ""}</td>
+              `;
+              tableBody.appendChild(tr);
+            });
+          }
+        }, error => {
+          console.error("ডাটা লোড করতে সমস্যা:", error);
+        });
+    }
+
+    // শিডিউল লোড শুরু
+    loadSchedules();
   </script>
 </body>
 </html>
