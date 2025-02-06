@@ -44,6 +44,15 @@
       font-weight: bold;
       font-size: 1.4rem;
     }
+    /* ডার্ক মোডে সেটিংস মোডালের স্টাইল সমন্বয় */
+    body.dark-mode .modal-content {
+      background-color: #333;
+      color: #f4f4f4;
+    }
+    body.dark-mode .modal-header, 
+    body.dark-mode .modal-footer {
+      border-color: #555;
+    }
   </style>
   <!-- Firebase CDN Scripts (v9 compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -83,7 +92,9 @@
       <button id="printBtn" class="btn btn-secondary"><i class="fa fa-print"></i> প্রিন্ট</button>
     </div>
 
-    <h2 class="text-center mb-4">শিডিউল ম্যানেজমেন্ট</h2>
+    <h2 class="text-center mb-1">শিডিউল ম্যানেজমেন্ট</h2>
+    <!-- শিরোনামের নিচে চিকন রেখা -->
+    <hr class="mb-4">
 
     <!-- শিডিউল এন্ট্রি ফর্ম (যোগ করার জন্য) -->
     <form id="scheduleForm" class="mb-4">
@@ -334,12 +345,29 @@
     // পেজ লোডের সময়, শিডিউল তারিখ ইনপুটে বর্তমান তারিখ সেট করা
     document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
 
+    // থিমের সিলেকশন (localStorage থেকে থিম রিডিরেক্ট করা)
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    themeSelect.value = savedTheme;
+    if(savedTheme === "dark"){
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+
     // ইউজার ফিডব্যাক দেখানোর ফাংশন
     function showMessage(msg, isError = false) {
       messageDiv.textContent = msg;
       messageDiv.classList.remove("text-success", "text-danger");
       messageDiv.classList.add(isError ? "text-danger" : "text-success");
       setTimeout(() => { messageDiv.textContent = ""; }, 4000);
+    }
+
+    // তারিখ ফরম্যাট ফাংশন: YYYY-MM-DD -> DD-MM-YYYY
+    function formatDate(dateStr) {
+      if(!dateStr) return "";
+      const parts = dateStr.split("-");
+      if(parts.length !== 3) return dateStr;
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
     // শিডিউল এন্ট্রি যোগ/আপডেট ফর্ম সাবমিশন (যোগ করার জন্য)
@@ -458,12 +486,12 @@
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${counter++}</td>
-            <td>${data.scheduleDate || ""}</td>
+            <td>${formatDate(data.scheduleDate || "")}</td>
             <td>${data.orderNo || ""}</td>
             <td>${data.customerName || ""}</td>
             <td>${data.color || ""}</td>
             <td>${data.quantity || ""}</td>
-            <td>${data.closeDate || ""}</td>
+            <td>${formatDate(data.closeDate || "")}</td>
             <td>${data.comments || ""}</td>
             <td class="text-center">
               <button class="ellipsis-btn" onclick="openActionModal('${doc.id}')">
@@ -507,12 +535,12 @@
             const tr = document.createElement("tr");
             tr.innerHTML = `
               <td>${counter++}</td>
-              <td>${data.scheduleDate || ""}</td>
+              <td>${formatDate(data.scheduleDate || "")}</td>
               <td>${data.orderNo || ""}</td>
               <td>${data.customerName || ""}</td>
               <td>${data.color || ""}</td>
               <td>${data.quantity || ""}</td>
-              <td>${data.closeDate || ""}</td>
+              <td>${formatDate(data.closeDate || "")}</td>
               <td>${data.comments || ""}</td>
               <td class="text-center">
                 <button class="ellipsis-btn" onclick="openActionModal('${id}')">
@@ -557,6 +585,8 @@
       } else {
         document.body.classList.remove("dark-mode");
       }
+      // থিম পরিবর্তনের সাথে সাথে localStorage-এ সংরক্ষণ করা
+      localStorage.setItem('theme', themeSelect.value);
     });
 
     // ইউজার ম্যানেজমেন্ট: সব ইউজার লোড (উদাহরণস্বরূপ, Firestore-এ 'users' কালেকশন থেকে)
