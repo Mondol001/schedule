@@ -473,67 +473,76 @@
       }, error => showMessage("ডাটা লোড করতে সমস্যা: " + error.message, true));
     }
 
-    // Filter ফাংশন (নির্দিষ্ট তারিখ, মাস, অর্ডার নম্বর এবং কাস্টমার নাম অনুযায়ী)
+    /* 
+       Filter ফাংশন: এখানে আমরা Firestore থেকে সকল ডাটা নিয়ে ক্লায়েন্ট সাইডে 
+       নির্দিষ্ট তারিখ, মাস, অর্ডার নং (partial matching সহ) এবং কাস্টমার নামের উপর ভিত্তি করে ফিল্টার করছি।
+    */
     filterBtn.addEventListener("click", () => {
-      let query = db.collection("schedules");
-
-      // নির্দিষ্ট তারিখ ফিল্টার: যদি প্রদান করা থাকে
-      if (filterDate.value) {
-        query = query.where("scheduleDate", "==", filterDate.value);
-      }
-      // মাস ফিল্টার: যদি 'filterDate' ফাঁকা থাকে এবং মাস দেওয়া থাকে
-      else if (filterMonth.value) {
-        // উদাহরণ: filterMonth.value = "2025-02"
-        const startDate = filterMonth.value + "-01";
-        const nextMonthDate = new Date(filterMonth.value + "-01");
-        nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
-        const endDate = nextMonthDate.toISOString().split("T")[0];
-
-        query = query.where("scheduleDate", ">=", startDate)
-                     .where("scheduleDate", "<", endDate);
-      }
-
-      // অর্ডার নম্বর ফিল্টার
-      if (filterOrder.value) {
-        query = query.where("orderNo", "==", filterOrder.value.trim());
-      }
-
-      // কাস্টমার নাম ফিল্টার
-      if (filterCustomer.value) {
-        query = query.where("customerName", "==", filterCustomer.value.trim());
-      }
-
-      // যদি কোন ফিল্টার প্রদান না করা হয়, তাহলে orderBy যুক্ত করে সবগুলো দেখানো হবে
-      query = query.orderBy("scheduleDate", "asc");
-
-      // কোয়েরি রেজাল্ট দেখানোর জন্য get() ব্যবহার করা হচ্ছে
-      query.get().then(snapshot => {
-        scheduleTableBody.innerHTML = "";
-        if (snapshot.empty) {
-          scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
-          return;
-        }
-        let counter = 1;
+      // প্রথমে সব ডাটা নিয়ে আসা হচ্ছে (orderBy প্রয়োগ করে)
+      db.collection("schedules").orderBy("scheduleDate", "asc").get().then(snapshot => {
+        let filteredDocs = [];
         snapshot.forEach(doc => {
           const data = doc.data();
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${counter++}</td>
-            <td>${formatDate(data.scheduleDate || "")}</td>
-            <td>${data.orderNo || ""}</td>
-            <td>${data.customerName || ""}</td>
-            <td>${data.color || ""}</td>
-            <td>${data.quantity || ""}</td>
-            <td>${formatDate(data.closeDate || "")}</td>
-            <td>${data.comments || ""}</td>
-            <td class="text-center">
-              <button class="ellipsis-btn" onclick="openActionModal('${doc.id}')">
-                <i class="fa fa-ellipsis-v"></i>
-              </button>
-            </td>
-          `;
-          scheduleTableBody.appendChild(tr);
+          let match = true;
+
+          // নির্দিষ্ট তারিখ ফিল্টার: যদি প্রদান করা থাকে
+          if(filterDate.value && data.scheduleDate !== filterDate.value) {
+            match = false;
+          }
+
+          // মাস ফিল্টার: যদি 'filterDate' ফাঁকা থাকে এবং মাস প্রদান করা থাকে
+          if(filterMonth.value && !filterDate.value) {
+            const startDate = filterMonth.value + "-01";
+            const nextMonth = new Date(filterMonth.value + "-01");
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            const endDate = nextMonth.toISOString().split("T")[0];
+            if (!(data.scheduleDate >= startDate && data.scheduleDate < endDate)) {
+              match = false;
+            }
+          }
+
+          // অর্ডার নং: partial matching (lowercase এ তুলনা)
+          if(filterOrder.value && !(data.orderNo && data.orderNo.toLowerCase().includes(filterOrder.value.trim().toLowerCase()))) {
+            match = false;
+          }
+
+          // কাস্টমার নাম: partial matching
+          if(filterCustomer.value && !(data.customerName && data.customerName.toLowerCase().includes(filterCustomer.value.trim().toLowerCase()))) {
+            match = false;
+          }
+
+          if(match) {
+            filteredDocs.push({ id: doc.id, data });
+          }
         });
+
+        // টেবিল আপডেট করা
+        scheduleTableBody.innerHTML = "";
+        if (filteredDocs.length === 0) {
+          scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
+        } else {
+          let counter = 1;
+          filteredDocs.forEach(item => {
+            const { id, data } = item;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${counter++}</td>
+              <td>${formatDate(data.scheduleDate || "")}</td>
+              <td>${data.orderNo || ""}</td>
+              <td>${data.customerName || ""}</td>
+              <td>${data.color || ""}</td>
+              <td>${data.quantity || ""}</td>
+              <td>${formatDate(data.closeDate || "")}</td>
+              <td>${data.comments || ""}</td>
+              <td class="text-center">
+                <button class="ellipsis-btn" onclick="openActionModal('${id}')">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </td>
+            `;
+            scheduleTableBody.appendChild(tr);
+          });
+        }
       })
       .catch(error => showMessage("ফিল্টার ত্রুটি: " + error.message, true));
     });
