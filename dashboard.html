@@ -2,56 +2,47 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <title>ড্যাশবোর্ড</title>
+  <title>এডমিন ড্যাশবোর্ড - শিডিউল ম্যানেজমেন্ট</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome CDN for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Global Styles */
     body {
-      font-family: 'Arial', sans-serif;
       background: #f4f4f4;
-      margin: 0;
-      padding: 20px;
+      transition: background 0.3s, color 0.3s;
     }
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
+    /* Dark mode স্টাইল (থিম কন্ট্রোল এর জন্য) */
+    body.dark-mode {
+      background: #1e1e1e;
+      color: #f4f4f4;
+    }
+    .container-custom {
+      margin-top: 30px;
       background: #fff;
-      padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
+    body.dark-mode .container-custom {
+      background: #2e2e2e;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+    .table td, .table th {
+      vertical-align: middle;
     }
-    table, th, td {
-      border: 1px solid #ddd;
-    }
-    th, td {
-      padding: 12px;
-      text-align: left;
-    }
-    .logout {
-      text-align: right;
+    .filter-section .form-control {
       margin-bottom: 10px;
     }
-    .logout button {
-      background: #c00;
-      padding: 10px 15px;
+    .ellipsis-btn {
+      background: none;
       border: none;
-      border-radius: 4px;
-      color: #fff;
+      font-size: 1.2rem;
       cursor: pointer;
-      transition: background 0.3s;
     }
-    .logout button:hover {
-      background: #a00;
+    .navbar-brand {
+      font-weight: bold;
+      font-size: 1.4rem;
     }
   </style>
   <!-- Firebase CDN Scripts (v9 compat) -->
@@ -60,96 +51,578 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <div class="container">
-    <div class="logout">
-      <button id="logoutBtn">লগআউট</button>
+  <!-- ন্যাভিগেশন বার -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">এডমিন ড্যাশবোর্ড - শিডিউল ম্যানেজমেন্ট</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="adminNavbar">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a id="dashboardLink" class="nav-link" href="dashboard.html"><i class="fa fa-tachometer-alt"></i> ড্যাশবোর্ড</a>
+          </li>
+          <li class="nav-item">
+            <button id="settingsBtn" class="btn btn-link nav-link" data-bs-toggle="modal" data-bs-target="#settingsModal">
+              <i class="fa fa-cog"></i> সেটিংস
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="logoutBtn" class="btn btn-link nav-link"><i class="fa fa-sign-out-alt"></i> লগআউট</button>
+          </li>
+        </ul>
+      </div>
     </div>
-    <h2>ড্যাশবোর্ড: শিডিউল দেখুন</h2>
-    
+  </nav>
+
+  <!-- মেইন কন্টেইনার -->
+  <div class="container container-custom">
+    <!-- Logout & Print Buttons (প্রিন্ট ও লগআউট ফিচার মূল পৃষ্ঠায়) -->
+    <div class="d-flex justify-content-between mb-3">
+      <button id="printBtn" class="btn btn-secondary"><i class="fa fa-print"></i> প্রিন্ট</button>
+    </div>
+
+    <h2 class="text-center mb-4">শিডিউল ম্যানেজমেন্ট</h2>
+
+    <!-- শিডিউল এন্ট্রি ফর্ম (যোগ করার জন্য, মূল পৃষ্ঠায়) -->
+    <form id="scheduleForm" class="mb-4">
+      <!-- হিডেন ইনপুট (এডিট মোড ট্র্যাকের জন্য, শুধু এডিট হলে এখানে মান থাকবে) -->
+      <input type="hidden" id="docId">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <label for="scheduleDate" class="form-label">শিডিউল তারিখ</label>
+          <input type="date" id="scheduleDate" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+          <label for="orderNo" class="form-label">অর্ডার নং</label>
+          <input type="text" id="orderNo" class="form-control" placeholder="অর্ডার নং" required>
+        </div>
+        <div class="col-md-3">
+          <label for="customerName" class="form-label">কাস্টমার নাম</label>
+          <input type="text" id="customerName" class="form-control" placeholder="কাস্টমার নাম" required>
+        </div>
+        <div class="col-md-3">
+          <label for="color" class="form-label">কালার (অপশনাল)</label>
+          <input type="text" id="color" class="form-control" placeholder="কালার">
+        </div>
+      </div>
+      <div class="row g-2 mt-2">
+        <div class="col-md-3">
+          <label for="quantity" class="form-label">কন্টিটি (অপশনাল)</label>
+          <input type="number" id="quantity" class="form-control" placeholder="কন্টিটি">
+        </div>
+        <div class="col-md-3">
+          <label for="closeDate" class="form-label">ক্লোজ তারিখ (অপশনাল)</label>
+          <input type="date" id="closeDate" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label for="comments" class="form-label">মন্তব্য (অপশনাল)</label>
+          <input type="text" id="comments" class="form-control" placeholder="মন্তব্য">
+        </div>
+      </div>
+      <div class="mt-3 text-end">
+        <button type="submit" id="submitBtn" class="btn btn-primary">শিডিউল যোগ করুন</button>
+      </div>
+    </form>
+
+    <!-- ইউজার ফিডব্যাক বার -->
+    <div id="message" class="mb-3 text-center fw-bold"></div>
+
+    <!-- উন্নত ফিল্টার সেকশন -->
+    <div class="filter-section mb-3">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input type="date" id="filterDate" class="form-control" placeholder="শিডিউল তারিখ">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="filterOrder" class="form-control" placeholder="অর্ডার নং">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="filterCustomer" class="form-control" placeholder="কাস্টমার নাম">
+        </div>
+        <div class="col-md-3 d-grid">
+          <button id="filterBtn" class="btn btn-info text-white">ফিল্টার করুন</button>
+        </div>
+      </div>
+    </div>
+
     <!-- শিডিউল টেবিল -->
-    <table id="scheduleTable">
-      <thead>
-        <tr>
-          <th>শিডিউল তারিখ</th>
-          <th>অর্ডার নং</th>
-          <th>কাস্টমার নাম</th>
-          <th>কালার</th>
-          <th>কন্টিটি</th>
-          <th>ক্লোজ তারিখ</th>
-          <th>মন্তব্য</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Firestore থেকে রিয়েল-টাইমে শিডিউল লোড হবে -->
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-bordered" id="scheduleTable">
+        <thead class="table-light">
+          <tr>
+            <th>শিডিউল তারিখ</th>
+            <th>অর্ডার নং</th>
+            <th>কাস্টমার নাম</th>
+            <th>কালার</th>
+            <th>কন্টিটি</th>
+            <th>ক্লোজ তারিখ</th>
+            <th>মন্তব্য</th>
+            <th>একশন</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Firestore থেকে রিয়েল-টাইমে শিডিউল লোড হবে -->
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <script>
-    // Firebase configuration (আপনার প্রকল্প অনুযায়ী পরিবর্তন করুন)
-   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCv7vvtIkbBD-8jKVetErI53SHG-AwnNaI",
-  authDomain: "schedule-6daae.firebaseapp.com",
-  projectId: "schedule-6daae",
-  storageBucket: "schedule-6daae.firebasestorage.app",
-  messagingSenderId: "163930511065",
-  appId: "1:163930511065:web:2e6e1cb9a709955a1050c8",
-  measurementId: "G-0KCNE3REKX"
-};
+  <!-- Edit Schedule Modal (শুধুমাত্র এডিট করার জন্য) -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form id="editScheduleForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel">শিডিউল এডিট করুন</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
+          </div>
+          <div class="modal-body">
+            <!-- হিডেন ইনপুট: এডিট করার ডকুমেন্ট আইডি -->
+            <input type="hidden" id="editDocId">
+            <div class="mb-3">
+              <label for="editScheduleDate" class="form-label">শিডিউল তারিখ</label>
+              <input type="date" id="editScheduleDate" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="editOrderNo" class="form-label">অর্ডার নং</label>
+              <input type="text" id="editOrderNo" class="form-control" placeholder="অর্ডার নং" required>
+            </div>
+            <div class="mb-3">
+              <label for="editCustomerName" class="form-label">কাস্টমার নাম</label>
+              <input type="text" id="editCustomerName" class="form-control" placeholder="কাস্টমার নাম" required>
+            </div>
+            <div class="mb-3">
+              <label for="editColor" class="form-label">কালার (অপশনাল)</label>
+              <input type="text" id="editColor" class="form-control" placeholder="কালার">
+            </div>
+            <div class="mb-3">
+              <label for="editQuantity" class="form-label">কন্টিটি (অপশনাল)</label>
+              <input type="number" id="editQuantity" class="form-control" placeholder="কন্টিটি">
+            </div>
+            <div class="mb-3">
+              <label for="editCloseDate" class="form-label">ক্লোজ তারিখ (অপশনাল)</label>
+              <input type="date" id="editCloseDate" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label for="editComments" class="form-label">মন্তব্য (অপশনাল)</label>
+              <input type="text" id="editComments" class="form-control" placeholder="মন্তব্য">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" id="editSubmitBtn" class="btn btn-primary">আপডেট করুন</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-    // Firebase ইনিশিয়ালাইজেশন
+  <!-- Settings Modal (থিম কন্ট্রোল, এডমিন ইমেইল, এবং ইউজার ম্যানেজমেন্ট) -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel">সেটিংস</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
+        </div>
+        <div class="modal-body">
+          <!-- এডমিন ইমেইল প্রদর্শন -->
+          <p><strong>এডমিন:</strong> <span id="adminEmail"></span></p>
+          <hr>
+          <!-- থিম কন্ট্রোল -->
+          <div class="mb-3">
+            <label for="themeSelect" class="form-label">থিম নির্বাচন করুন</label>
+            <select id="themeSelect" class="form-select">
+              <option value="light">লাইট</option>
+              <option value="dark">ডার্ক</option>
+            </select>
+          </div>
+          <hr>
+          <!-- ইউজার ম্যানেজমেন্ট -->
+          <div class="text-center">
+            <button id="viewUsersBtn" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#allUsersModal">
+              <i class="fa fa-users"></i> সব ইউজার দেখুন
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Users Modal (সব ইউজারের তালিকা ও ডিলিট অপশন) -->
+  <div class="modal fade" id="allUsersModal" tabindex="-1" aria-labelledby="allUsersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="allUsersModalLabel">সকল ইউজার</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-bordered" id="usersTable">
+              <thead class="table-light">
+                <tr>
+                  <th>ইউজার আইডি</th>
+                  <th>ইমেইল</th>
+                  <th>নাম</th>
+                  <th>একশন</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Firestore থেকে ইউজার ডাটা লোড হবে -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Firebase configuration (আপনার প্রকল্প অনুযায়ী কনফিগারেশন পরিবর্তন করুন)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCv7vvtIkbBD-8jKVetErI53SHG-AwnNaI",
+      authDomain: "schedule-6daae.firebaseapp.com",
+      projectId: "schedule-6daae",
+      storageBucket: "schedule-6daae.firebasestorage.app",
+      messagingSenderId: "163930511065",
+      appId: "1:163930511065:web:2e6e1cb9a709955a1050c8",
+      measurementId: "G-0KCNE3REKX"
+    };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ইউজার অথেন্টিকেশন যাচাই: লগইন না থাকলে লগইন পেজে রিডাইরেক্ট হবে
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        window.location.href = "index.html"; // লগইন পেজ (index.html)
+    // UI উপাদান রেফারেন্স
+    const scheduleForm = document.getElementById("scheduleForm");
+    const docIdField = document.getElementById("docId");
+    const submitBtn = document.getElementById("submitBtn");
+    const messageDiv = document.getElementById("message");
+    const scheduleTableBody = document.querySelector("#scheduleTable tbody");
+
+    // Filter ফিল্ড রেফারেন্স
+    const filterDate = document.getElementById("filterDate");
+    const filterOrder = document.getElementById("filterOrder");
+    const filterCustomer = document.getElementById("filterCustomer");
+    const filterBtn = document.getElementById("filterBtn");
+
+    // Settings Modal উপাদান
+    const adminEmailSpan = document.getElementById("adminEmail");
+    const themeSelect = document.getElementById("themeSelect");
+
+    // All Users Modal উপাদান
+    const usersTableBody = document.querySelector("#usersTable tbody");
+
+    // Edit Modal উপাদান
+    const editModal = new bootstrap.Modal(document.getElementById("editModal"));
+    const editScheduleForm = document.getElementById("editScheduleForm");
+    const editDocId = document.getElementById("editDocId");
+    const editScheduleDate = document.getElementById("editScheduleDate");
+    const editOrderNo = document.getElementById("editOrderNo");
+    const editCustomerName = document.getElementById("editCustomerName");
+    const editColor = document.getElementById("editColor");
+    const editQuantity = document.getElementById("editQuantity");
+    const editCloseDate = document.getElementById("editCloseDate");
+    const editComments = document.getElementById("editComments");
+    const editSubmitBtn = document.getElementById("editSubmitBtn");
+
+    // পেজ লোডের সময়, শিডিউল তারিখ ইনপুটে বর্তমান তারিখ সেট করা
+    document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+
+    // ইউজার ফিডব্যাক দেখানোর ফাংশন
+    function showMessage(msg, isError = false) {
+      messageDiv.textContent = msg;
+      messageDiv.classList.remove("text-success", "text-danger");
+      messageDiv.classList.add(isError ? "text-danger" : "text-success");
+      setTimeout(() => { messageDiv.textContent = ""; }, 4000);
+    }
+
+    // শিডিউল এন্ট্রি যোগ/আপডেট ফর্ম সাবমিশন (যোগ করার জন্য)
+    scheduleForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const scheduleDate = document.getElementById("scheduleDate").value;
+      const orderNo = document.getElementById("orderNo").value;
+      const customerName = document.getElementById("customerName").value;
+      const color = document.getElementById("color").value;
+      const quantity = document.getElementById("quantity").value;
+      const closeDate = document.getElementById("closeDate").value;
+      const comments = document.getElementById("comments").value;
+      const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+      const scheduleData = { scheduleDate, orderNo, customerName, color, quantity, closeDate, comments, timestamp };
+
+      // যদি docId ফিল্ডে মান থাকে, তাহলে এটি এডিট মোড (এখানে ফর্মটি যোগ করার জন্য ব্যবহৃত হচ্ছে না)
+      const docId = docIdField.value;
+      if (docId) {
+        db.collection("schedules").doc(docId).update(scheduleData)
+          .then(() => {
+            showMessage("শিডিউল আপডেট করা হয়েছে!");
+            scheduleForm.reset();
+            docIdField.value = "";
+            document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+            submitBtn.textContent = "শিডিউল যোগ করুন";
+          })
+          .catch(error => showMessage("ত্রুটি: " + error.message, true));
+      } else {
+        // নতুন এন্ট্রি
+        db.collection("schedules").add(scheduleData)
+          .then(() => {
+            showMessage("শিডিউল যোগ করা হয়েছে!");
+            scheduleForm.reset();
+            document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+          })
+          .catch(error => showMessage("ত্রুটি: " + error.message, true));
       }
     });
+
+    // থ্রি ডট মেনু: এডিট/ডিলিট অপশনের জন্য
+    function openActionModal(docId) {
+      // ডিলিট ও এডিট অপশন সহ একটি ছোট মেনু (এখানে শুধুমাত্র এডিট ও ডিলিট ফাংশনালিটি রয়েছে)
+      // আপনি চাইলে এখানে custom confirmation dialog বা dropdown ব্যবহার করতে পারেন।
+      const action = prompt("এডিট (E) অথবা ডিলিট (D) লিখুন:");
+      if (action) {
+        if (action.toLowerCase() === 'e') {
+          openEditModal(docId);
+        } else if (action.toLowerCase() === 'd') {
+          if (confirm("আপনি কি এই শিডিউলটি মুছে ফেলতে চান?")) {
+            db.collection("schedules").doc(docId).delete()
+              .then(() => {
+                showMessage("শিডিউল মুছে ফেলা হয়েছে!");
+              })
+              .catch(error => showMessage("ত্রুটি: " + error.message, true));
+          }
+        }
+      }
+    }
+
+    // এডিট মোডাল ওপেন করার ফাংশন
+    function openEditModal(docId) {
+      db.collection("schedules").doc(docId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            editScheduleDate.value = data.scheduleDate || new Date().toISOString().split("T")[0];
+            editOrderNo.value = data.orderNo || "";
+            editCustomerName.value = data.customerName || "";
+            editColor.value = data.color || "";
+            editQuantity.value = data.quantity || "";
+            editCloseDate.value = data.closeDate || "";
+            editComments.value = data.comments || "";
+            editDocId.value = docId;
+            editSubmitBtn.textContent = "শিডিউল আপডেট করুন";
+            editModal.show();
+          }
+        })
+        .catch(error => showMessage("ত্রুটি: " + error.message, true));
+    }
+
+    // এডিট মোডালের ফর্ম সাবমিশন (শুধুমাত্র এডিট করার জন্য)
+    editScheduleForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const scheduleDate = editScheduleDate.value;
+      const orderNo = editOrderNo.value;
+      const customerName = editCustomerName.value;
+      const color = editColor.value;
+      const quantity = editQuantity.value;
+      const closeDate = editCloseDate.value;
+      const comments = editComments.value;
+      const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+      const scheduleData = { scheduleDate, orderNo, customerName, color, quantity, closeDate, comments, timestamp };
+
+      const docId = editDocId.value;
+      if (docId) {
+        db.collection("schedules").doc(docId).update(scheduleData)
+          .then(() => {
+            showMessage("শিডিউল আপডেট করা হয়েছে!");
+            editScheduleForm.reset();
+            editModal.hide();
+          })
+          .catch(error => showMessage("ত্রুটি: " + error.message, true));
+      }
+    });
+
+    // রিয়েল-টাইম শিডিউল লোডিং (onSnapshot)
+    function listenSchedules(query = db.collection("schedules").orderBy("timestamp", "desc")) {
+      query.onSnapshot(snapshot => {
+        scheduleTableBody.innerHTML = "";
+        if (snapshot.empty) {
+          scheduleTableBody.innerHTML = `<tr><td colspan="8" class="text-center">কোনো রেকর্ড পাওয়া যায়নি</td></tr>`;
+          return;
+        }
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${data.scheduleDate || ""}</td>
+            <td>${data.orderNo || ""}</td>
+            <td>${data.customerName || ""}</td>
+            <td>${data.color || ""}</td>
+            <td>${data.quantity || ""}</td>
+            <td>${data.closeDate || ""}</td>
+            <td>${data.comments || ""}</td>
+            <td class="text-center">
+              <button class="ellipsis-btn" onclick="openActionModal('${doc.id}')">
+                <i class="fa fa-ellipsis-v"></i>
+              </button>
+            </td>
+          `;
+          scheduleTableBody.appendChild(tr);
+        });
+      }, error => showMessage("ডাটা লোড করতে সমস্যা: " + error.message, true));
+    }
+
+    // Filter ফাংশন
+    filterBtn.addEventListener("click", () => {
+      let query = db.collection("schedules").orderBy("timestamp", "desc");
+      query.get().then(snapshot => {
+        let filteredDocs = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          let match = true;
+          if (filterDate.value && data.scheduleDate !== filterDate.value) {
+            match = false;
+          }
+          if (filterOrder.value && (!data.orderNo || data.orderNo.toLowerCase().indexOf(filterOrder.value.trim().toLowerCase()) === -1)) {
+            match = false;
+          }
+          if (filterCustomer.value && (!data.customerName || data.customerName.toLowerCase().indexOf(filterCustomer.value.trim().toLowerCase()) === -1)) {
+            match = false;
+          }
+          if (match) {
+            filteredDocs.push({ id: doc.id, data });
+          }
+        });
+        scheduleTableBody.innerHTML = "";
+        if (filteredDocs.length === 0) {
+          scheduleTableBody.innerHTML = `<tr><td colspan="8" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
+        } else {
+          filteredDocs.forEach(item => {
+            const { id, data } = item;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${data.scheduleDate || ""}</td>
+              <td>${data.orderNo || ""}</td>
+              <td>${data.customerName || ""}</td>
+              <td>${data.color || ""}</td>
+              <td>${data.quantity || ""}</td>
+              <td>${data.closeDate || ""}</td>
+              <td>${data.comments || ""}</td>
+              <td class="text-center">
+                <button class="ellipsis-btn" onclick="openActionModal('${id}')">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </td>
+            `;
+            scheduleTableBody.appendChild(tr);
+          });
+        }
+      })
+      .catch(error => showMessage("ফিল্টার ত্রুটি: " + error.message, true));
+    });
+
+    // Print ফিচার
+    document.getElementById("printBtn").addEventListener("click", () => {
+      const printContent = document.getElementById("scheduleTable").outerHTML;
+      const originalContent = document.body.innerHTML;
+      document.body.innerHTML = `
+        <html>
+          <head>
+            <title>Print Schedule</title>
+            <style>
+              table { width: 100%; border-collapse: collapse; }
+              table, th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+            </style>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `;
+      window.print();
+      document.body.innerHTML = originalContent;
+      location.reload();
+    });
+
+    // থিম কন্ট্রোল: লাইট/ডার্ক মোড
+    themeSelect.addEventListener("change", () => {
+      if (themeSelect.value === "dark") {
+        document.body.classList.add("dark-mode");
+      } else {
+        document.body.classList.remove("dark-mode");
+      }
+    });
+
+    // ইউজার ম্যানেজমেন্ট: সব ইউজার লোড (উদাহরণস্বরূপ, Firestore-এ 'users' কালেকশন থেকে)
+    function loadAllUsers() {
+      db.collection("users").get()
+        .then(snapshot => {
+          usersTableBody.innerHTML = "";
+          if (snapshot.empty) {
+            usersTableBody.innerHTML = `<tr><td colspan="4" class="text-center">কোনো ইউজার পাওয়া যায়নি</td></tr>`;
+            return;
+          }
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${doc.id}</td>
+              <td>${data.email || ""}</td>
+              <td>${data.name || ""}</td>
+              <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteUser('${doc.id}')">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </td>
+            `;
+            usersTableBody.appendChild(tr);
+          });
+        })
+        .catch(error => showMessage("ইউজার লোড ত্রুটি: " + error.message, true));
+    }
+
+    // ইউজার ডিলিট ফাংশন (ডেমো হিসেবে; বাস্তবে নিরাপত্তা যাচাই প্রয়োজন)
+    function deleteUser(userId) {
+      if (confirm("আপনি কি এই ইউজারটি ডিলিট করতে চান?")) {
+        db.collection("users").doc(userId).delete()
+          .then(() => {
+            showMessage("ইউজার মুছে ফেলা হয়েছে!");
+            loadAllUsers();
+          })
+          .catch(error => showMessage("ডিলিট ত্রুটি: " + error.message, true));
+      }
+    }
 
     // লগআউট ফাংশন
     document.getElementById("logoutBtn").addEventListener("click", () => {
       auth.signOut().then(() => {
-        window.location.href = "index.html";
+        window.location.href = "index.html"; // লগইন পেজে রিডাইরেক্ট
       }).catch(error => {
-        console.error("লগআউট ত্রুটি:", error);
+        showMessage("লগআউট ত্রুটি: " + error.message, true);
       });
     });
 
-    // রিয়েল-টাইম শিডিউল লোডিং (onSnapshot)
-    function loadSchedules() {
-      db.collection("schedules").orderBy("timestamp", "desc")
-        .onSnapshot(snapshot => {
-          const tableBody = document.querySelector("#scheduleTable tbody");
-          tableBody.innerHTML = "";
-          if (snapshot.empty) {
-            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">কোনো শিডিউল পাওয়া যায়নি</td></tr>`;
-          } else {
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              const tr = document.createElement("tr");
-              tr.innerHTML = `
-                <td>${data.scheduleDate || ""}</td>
-                <td>${data.orderNo || ""}</td>
-                <td>${data.customerName || ""}</td>
-                <td>${data.color || ""}</td>
-                <td>${data.quantity || ""}</td>
-                <td>${data.closeDate || ""}</td>
-                <td>${data.comments || ""}</td>
-              `;
-              tableBody.appendChild(tr);
-            });
-          }
-        }, error => {
-          console.error("ডাটা লোড করতে সমস্যা:", error);
-        });
-    }
+    // ইউজার অথেন্টিকেশন যাচাই: এডমিন ছাড়া অন্য ইউজার রিডাইরেক্ট
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // এডমিন ইমেইল সেট করুন (সেটিংস মোডালে প্রদর্শনের জন্য)
+        adminEmailSpan.textContent = user.email;
+        if (user.email !== "mohammadiaqub@gmail.com") {
+          alert("আপনি এডমিন নন! এডমিন ড্যাশবোর্ডে প্রবেশের অনুমতি নেই।");
+          window.location.href = "dashboard.html"; // সাধারণ ইউজার ড্যাশবোর্ডে রিডাইরেক্ট
+        }
+      } else {
+        window.location.href = "index.html"; // লগইন না থাকলে লগইন পেজে রিডাইরেক্ট
+      }
+    });
 
-    // শিডিউল লোড শুরু
-    loadSchedules();
+    // যখন All Users Modal খোলে, ইউজার লোড করুন
+    document.getElementById("allUsersModal").addEventListener("show.bs.modal", loadAllUsers);
+
+    // রিয়েল-টাইম শিডিউল লোড শুরু
+    listenSchedules();
   </script>
 </body>
 </html>
