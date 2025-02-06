@@ -41,8 +41,15 @@
       padding: 12px;
       text-align: left;
     }
-    /* Filter Section */
-    .filter-section .form-control {
+    /* Filter Section Box */
+    .filter-box {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      margin-bottom: 15px;
+    }
+    .filter-box .form-control {
       margin-bottom: 10px;
     }
     /* Buttons */
@@ -114,33 +121,38 @@
     <h2 class="text-center">শিডিউল দেখুন</h2>
     <hr class="custom-hr">
 
-    <!-- Filter Section -->
-    <div class="filter-section mb-3">
+    <!-- Filter Section Box -->
+    <div class="filter-box">
       <div class="row g-2">
         <!-- শুরু তারিখ; ডিফল্ট আজকের তারিখ হবে -->
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label for="filterStartDate" class="form-label">শুরু তারিখ</label>
           <input type="date" id="filterStartDate" class="form-control" placeholder="শুরু তারিখ">
         </div>
         <!-- শেষ তারিখ; ঐচ্ছিক -->
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label for="filterEndDate" class="form-label">শেষ তারিখ (ঐচ্ছিক)</label>
           <input type="date" id="filterEndDate" class="form-control" placeholder="শেষ তারিখ">
         </div>
-        <div class="col-md-4">
+        <!-- অর্ডার নং -->
+        <div class="col-md-6">
           <label for="filterOrder" class="form-label">অর্ডার নং</label>
           <input type="text" id="filterOrder" class="form-control" placeholder="অর্ডার নং">
         </div>
-        <div class="col-md-4">
+        <!-- কাস্টমার নাম -->
+        <div class="col-md-6">
           <label for="filterCustomer" class="form-label">কাস্টমার নাম</label>
           <input type="text" id="filterCustomer" class="form-control" placeholder="কাস্টমার নাম">
         </div>
-        <div class="col-md-4 mt-2">
-          <button id="filterBtn" class="btn btn-info text-white w-100">ফিল্টার করুন</button>
-        </div>
-        <div class="col-md-4 mt-2">
-          <button id="clearFilterBtn" class="btn btn-secondary w-100">সব দেখুন</button>
-        </div>
+      </div>
+    </div>
+    <!-- Filter Buttons (Box এর নিচে) -->
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <button id="filterBtn" class="btn btn-info text-white w-100">ফিল্টার করুন</button>
+      </div>
+      <div class="col-md-6">
+        <button id="clearFilterBtn" class="btn btn-secondary w-100">সব দেখুন</button>
       </div>
     </div>
 
@@ -236,12 +248,12 @@
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
-    // Global variable for today's date (in YYYY-MM-DD format)
+    // Global variable for today's date (YYYY-MM-DD)
     const today = new Date().toISOString().split("T")[0];
     // Set default filter start date as today
     document.getElementById("filterStartDate").value = today;
 
-    // Function to load schedules based on applied filters
+    // Function to apply filters and load schedules
     function applyFilters() {
       db.collection("schedules").orderBy("timestamp", "desc").get().then(snapshot => {
         let filteredDocs = [];
@@ -249,12 +261,12 @@
           const data = doc.data();
           let match = true;
 
-          // Date filtering:
+          // Date filtering
           const startDate = document.getElementById("filterStartDate").value;
           const endDate = document.getElementById("filterEndDate").value;
           if (startDate) {
             if (!endDate) {
-              // Only a single date filter – exact match
+              // Single date match
               if (data.scheduleDate !== startDate) {
                 match = false;
               }
@@ -317,7 +329,7 @@
       applyFilters();
     });
 
-    // Clear Filter Button: Reset filter inputs and load all schedules
+    // Clear Filter Button: Reset filter inputs and load schedules
     document.getElementById("clearFilterBtn").addEventListener("click", () => {
       document.getElementById("filterStartDate").value = today;
       document.getElementById("filterEndDate").value = "";
