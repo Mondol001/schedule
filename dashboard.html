@@ -58,10 +58,6 @@
     .btn-print:hover {
       background: #138496;
     }
-    /* Comment button */
-    .btn-comment {
-      font-size: 0.9rem;
-    }
     /* Dark mode styles */
     body.dark-mode {
       background: #1e1e1e;
@@ -90,21 +86,6 @@
       border-top: 1px solid #ddd;
       margin-top: 0;
       margin-bottom: 20px;
-    }
-    /* Comment List Styles */
-    .comment-item {
-      border-bottom: 1px solid #ddd;
-      padding: 5px 0;
-    }
-    .comment-item:last-child {
-      border-bottom: none;
-    }
-    .comment-user {
-      font-weight: bold;
-      font-size: 0.9rem;
-    }
-    .comment-text {
-      font-size: 0.9rem;
     }
   </style>
   <!-- Firebase CDN Scripts (v9 compat) -->
@@ -167,43 +148,12 @@
           <th>কন্টিটি</th>
           <th>ক্লোজ তারিখ</th>
           <th>মন্তব্য</th>
-          <th>কমেন্ট</th>
         </tr>
       </thead>
       <tbody>
         <!-- Firestore থেকে রিয়েল-টাইমে শিডিউল লোড হবে -->
       </tbody>
     </table>
-  </div>
-
-  <!-- Comment Modal -->
-  <div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <form id="commentForm">
-          <div class="modal-header">
-            <h5 class="modal-title" id="commentModalLabel">মন্তব্য করুন</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
-          </div>
-          <div class="modal-body">
-            <!-- এই ইনপুটে সংশ্লিষ্ট শিডিউল ডকুমেন্টের আইডি থাকবে -->
-            <input type="hidden" id="commentDocId">
-            <!-- মন্তব্য তালিকা -->
-            <div id="commentsList" class="mb-3" style="max-height: 200px; overflow-y: auto;">
-              <!-- সাব-কলেকশন থেকে মন্তব্য লোড হবে -->
-            </div>
-            <!-- নতুন মন্তব্য ইনপুট -->
-            <div class="mb-3">
-              <label for="newComment" class="form-label">নতুন মন্তব্য</label>
-              <textarea id="newComment" class="form-control" rows="3" placeholder="আপনার মন্তব্য লিখুন..."></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">সেভ করুন</button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 
   <!-- Settings Modal (থিম কন্ট্রোল এবং এডমিন ইমেইল প্রদর্শন) -->
@@ -251,12 +201,14 @@ const firebaseConfig = {
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // Check Authentication: যদি লগইন না থাকে, index.html এ রিডাইরেক্ট হবে
+    // Check User Authentication: লগইন না থাকলে index.html এ রিডাইরেক্ট হবে
     auth.onAuthStateChanged(user => {
       if (!user) {
         window.location.href = "index.html";
       } else {
+        // এডমিন ইমেইল সেট করুন (সেটিংস মোডালে প্রদর্শনের জন্য)
         document.getElementById("adminEmail").textContent = user.email;
+        // (যদি এডমিন চিহ্নিত করতে চান, যেমন: user.email==="mohammadiaqub@gmail.com")
       }
     });
 
@@ -277,14 +229,14 @@ const firebaseConfig = {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
-    // Load Schedules in Real-time
+    // Load Schedules in Real-time (order by timestamp descending)
     function loadSchedules() {
       db.collection("schedules").orderBy("timestamp", "desc")
         .onSnapshot(snapshot => {
           const tableBody = document.querySelector("#scheduleTable tbody");
           tableBody.innerHTML = "";
           if (snapshot.empty) {
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center">কোনো শিডিউল পাওয়া যায়নি</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center">কোনো শিডিউল পাওয়া যায়নি</td></tr>`;
           } else {
             snapshot.forEach(doc => {
               const data = doc.data();
@@ -297,11 +249,6 @@ const firebaseConfig = {
                 <td>${data.quantity || ""}</td>
                 <td>${formatDate(data.closeDate || "")}</td>
                 <td>${data.comments || ""}</td>
-                <td class="text-center">
-                  <button class="btn btn-sm btn-outline-primary btn-comment" onclick="openCommentModal('${doc.id}')">
-                    <i class="fa fa-comment"></i> কমেন্ট
-                  </button>
-                </td>
               `;
               tableBody.appendChild(tr);
             });
@@ -311,7 +258,7 @@ const firebaseConfig = {
         });
     }
 
-    // Start loading schedules
+    // Start Loading Schedules
     loadSchedules();
 
     // Filter Functionality
@@ -338,7 +285,7 @@ const firebaseConfig = {
         const tableBody = document.querySelector("#scheduleTable tbody");
         tableBody.innerHTML = "";
         if (filteredDocs.length === 0) {
-          tableBody.innerHTML = `<tr><td colspan="8" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="7" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
         } else {
           filteredDocs.forEach(item => {
             const { data } = item;
@@ -351,11 +298,6 @@ const firebaseConfig = {
               <td>${data.quantity || ""}</td>
               <td>${formatDate(data.closeDate || "")}</td>
               <td>${data.comments || ""}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary btn-comment" onclick="openCommentModal('${item.id}')">
-                  <i class="fa fa-comment"></i> কমেন্ট
-                </button>
-              </td>
             `;
             tableBody.appendChild(tr);
           });
@@ -405,80 +347,6 @@ const firebaseConfig = {
     if (savedTheme === "dark") {
       document.body.classList.add("dark-mode");
     }
-
-    // ---------------------------
-    // Comment Modal Functionality
-    // ---------------------------
-
-    // Function to open the comment modal and load existing comments from the sub-collection "comments"
-    function openCommentModal(scheduleId) {
-      // Set the schedule document id in a hidden field
-      document.getElementById("commentDocId").value = scheduleId;
-      // Clear previous comment input
-      document.getElementById("newComment").value = "";
-      // Load existing comments
-      loadComments(scheduleId);
-      // Show the modal
-      const commentModal = new bootstrap.Modal(document.getElementById("commentModal"));
-      commentModal.show();
-    }
-
-    // Function to load comments from the sub-collection "comments" for a given schedule document
-    function loadComments(scheduleId) {
-      const commentsListDiv = document.getElementById("commentsList");
-      commentsListDiv.innerHTML = "<p>লোড হচ্ছে...</p>";
-      db.collection("schedules").doc(scheduleId)
-        .collection("comments").orderBy("timestamp", "asc")
-        .onSnapshot(snapshot => {
-          if (snapshot.empty) {
-            commentsListDiv.innerHTML = "<p>কোনো মন্তব্য নেই</p>";
-          } else {
-            let commentsHtml = "";
-            snapshot.forEach(doc => {
-              const commentData = doc.data();
-              // Optional: আপনি এখানে মন্তব্যের সাথে ইউজারের নাম ও টাইমস্ট্যাম্পও দেখাতে পারেন
-              commentsHtml += `<div class="comment-item">
-                                <div class="comment-user">${commentData.userEmail || "অজানা"}:</div>
-                                <div class="comment-text">${commentData.comment || ""}</div>
-                              </div>`;
-            });
-            commentsListDiv.innerHTML = commentsHtml;
-          }
-        }, error => {
-          console.error("মন্তব্য লোড করতে সমস্যা:", error);
-          document.getElementById("commentsList").innerHTML = "<p>মন্তব্য লোড করতে সমস্যা হয়েছে</p>";
-        });
-    }
-
-    // Comment form submission: Add a new comment to the "comments" sub-collection of the corresponding schedule document
-    document.getElementById("commentForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const scheduleId = document.getElementById("commentDocId").value;
-      const newComment = document.getElementById("newComment").value.trim();
-      if (newComment === "") {
-        alert("দয়া করে একটি মন্তব্য লিখুন।");
-        return;
-      }
-      const currentUser = auth.currentUser;
-      const commentData = {
-        comment: newComment,
-        userId: currentUser ? currentUser.uid : "",
-        userEmail: currentUser ? currentUser.email : "",
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      // Add the new comment to the sub-collection "comments" under the specific schedule document
-      db.collection("schedules").doc(scheduleId)
-        .collection("comments").add(commentData)
-        .then(() => {
-          alert("মন্তব্য সেভ করা হয়েছে!");
-          document.getElementById("newComment").value = "";
-          // মন্তব্য তালিকা আবার লোড হবে onSnapshot এর মাধ্যমে
-        })
-        .catch(error => {
-          console.error("মন্তব্য যোগ করতে সমস্যা:", error);
-          alert("মন্তব্য যোগ করতে সমস্যা হয়েছে!");
-        });
-    });
   </script>
 </body>
 </html>
