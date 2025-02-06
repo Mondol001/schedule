@@ -143,10 +143,10 @@
     <!-- ইউজার ফিডব্যাক বার -->
     <div id="message" class="mb-3 text-center fw-bold"></div>
 
-    <!-- উন্নত ফিল্টার সেকশন (শুরু ও শেষ তারিখ) -->
+    <!-- উন্নত ফিল্টার সেকশন (শুরু ও শেষ তারিখ, অর্ডার ও কাস্টমার নাম) -->
     <div class="filter-section mb-3">
       <div class="row g-2">
-        <!-- শুরু তারিখ; ডিফল্ট হিসেবে আজকের তারিখ সেট করা হবে -->
+        <!-- শুরু তারিখ; পেজ লোডের সময় আজকের তারিখ সেট থাকবে -->
         <div class="col-md-3">
           <input type="date" id="filterStartDate" class="form-control" placeholder="শুরু তারিখ">
         </div>
@@ -240,6 +240,22 @@
     </div>
   </div>
 
+  <!-- Action Modal: থ্রী ডট ক্লিকে এডিট ও ডিলিট বাটন -->
+  <div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="actionModalLabel">অপশন নির্বাচন করুন</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
+        </div>
+        <div class="modal-body text-center">
+          <button id="actionEditBtn" class="btn btn-primary me-2">এডিট করুন</button>
+          <button id="actionDeleteBtn" class="btn btn-danger">ডিলিট করুন</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal (থিম কন্ট্রোল এবং এডমিন ইমেইল) -->
   <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -288,7 +304,7 @@
     const messageDiv = document.getElementById("message");
     const scheduleTableBody = document.querySelector("#scheduleTable tbody");
 
-    // Filter ফিল্ড রেফারেন্স (শুরু ও শেষ তারিখ)
+    // Filter ফিল্ড রেফারেন্স (শুরু ও শেষ তারিখ, অর্ডার, কাস্টমার)
     const filterStartDate = document.getElementById("filterStartDate");
     const filterEndDate = document.getElementById("filterEndDate");
     const filterOrder = document.getElementById("filterOrder");
@@ -313,7 +329,12 @@
     const editComments = document.getElementById("editComments");
     const editSubmitBtn = document.getElementById("editSubmitBtn");
 
-    // পেজ লোডের সময়, শিডিউল তারিখ ও filterStartDate-এ আজকের তারিখ সেট করা
+    // Action Modal বাটনের রেফারেন্স এবং বর্তমান নির্বাচিত ডকুমেন্ট আইডি
+    const actionEditBtn = document.getElementById("actionEditBtn");
+    const actionDeleteBtn = document.getElementById("actionDeleteBtn");
+    let currentDocId = null; // থ্রী ডট ক্লিকে নির্বাচিত শিডিউলের ডক আইডি
+
+    // পেজ লোডের সময়, শিডিউল তারিখ ও filterStartDate-এ আজকের তারিখ সেট করা
     const today = new Date().toISOString().split("T")[0];
     document.getElementById("scheduleDate").value = today;
     filterStartDate.value = today;
@@ -378,23 +399,34 @@
       }
     });
 
-    // থ্রি ডট মেনু: এডিট/ডিলিট অপশনের জন্য
+    // থ্রী ডট বাটনে ক্লিক করলে Action Modal ওপেন হবে
     function openActionModal(docId) {
-      const action = prompt("এডিট (E) অথবা ডিলিট (D) লিখুন:");
-      if (action) {
-        if (action.toLowerCase() === 'e') {
-          openEditModal(docId);
-        } else if (action.toLowerCase() === 'd') {
-          if (confirm("আপনি কি এই শিডিউলটি মুছে ফেলতে চান?")) {
-            db.collection("schedules").doc(docId).delete()
-              .then(() => {
-                showMessage("শিডিউল মুছে ফেলা হয়েছে!");
-              })
-              .catch(error => showMessage("ত্রুটি: " + error.message, true));
-          }
-        }
-      }
+      currentDocId = docId;
+      const actionModalEl = document.getElementById("actionModal");
+      const actionModal = new bootstrap.Modal(actionModalEl);
+      actionModal.show();
     }
+
+    // Action Modal এর এডিট বাটনের ক্লিক ইভেন্ট
+    actionEditBtn.addEventListener("click", () => {
+      // Action Modal বন্ধ করে এডিট মোডাল খুলুন
+      const actionModalEl = document.getElementById("actionModal");
+      bootstrap.Modal.getInstance(actionModalEl).hide();
+      openEditModal(currentDocId);
+    });
+
+    // Action Modal এর ডিলিট বাটনের ক্লিক ইভেন্ট
+    actionDeleteBtn.addEventListener("click", () => {
+      const actionModalEl = document.getElementById("actionModal");
+      bootstrap.Modal.getInstance(actionModalEl).hide();
+      if (confirm("আপনি কি এই শিডিউলটি মুছে ফেলতে চান?")) {
+        db.collection("schedules").doc(currentDocId).delete()
+          .then(() => {
+            showMessage("শিডিউল মুছে ফেলা হয়েছে!");
+          })
+          .catch(error => showMessage("ত্রুটি: " + error.message, true));
+      }
+    });
 
     // এডিট মোডাল ওপেন করার ফাংশন
     function openEditModal(docId) {
@@ -442,8 +474,20 @@
       }
     });
 
-    // রিয়েল-টাইম শিডিউল লোডিং
-    function listenSchedules(query = db.collection("schedules").orderBy("scheduleDate", "asc")) {
+    // রিয়েল-টাইম শিডিউল লোডিং: 
+    // ডিফল্টভাবে filterStartDate (আজকের তারিখ) অনুযায়ী শিডিউল দেখাবে।
+    function listenSchedules() {
+      let query = db.collection("schedules");
+      // যদি filterStartDate এ কোনো মান থাকে (এখানে পেজ লোডে আজকের তারিখ থাকে)
+      if(filterStartDate.value) {
+        if(filterEndDate.value) {
+          query = query.where("scheduleDate", ">=", filterStartDate.value)
+                       .where("scheduleDate", "<=", filterEndDate.value);
+        } else {
+          query = query.where("scheduleDate", "==", filterStartDate.value);
+        }
+      }
+      query = query.orderBy("scheduleDate", "asc");
       query.onSnapshot(snapshot => {
         scheduleTableBody.innerHTML = "";
         if (snapshot.empty) {
@@ -453,33 +497,38 @@
         let counter = 1;
         snapshot.forEach(doc => {
           const data = doc.data();
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${counter++}</td>
-            <td>${formatDate(data.scheduleDate || "")}</td>
-            <td>${data.orderNo || ""}</td>
-            <td>${data.customerName || ""}</td>
-            <td class="wrap-text">${data.color || ""}</td>
-            <td>${data.quantity || ""}</td>
-            <td>${formatDate(data.closeDate || "")}</td>
-            <td class="wrap-text">${data.comments || ""}</td>
-            <td class="text-center">
-              <button class="ellipsis-btn" onclick="openActionModal('${doc.id}')">
-                <i class="fa fa-ellipsis-v"></i>
-              </button>
-            </td>
-          `;
-          scheduleTableBody.appendChild(tr);
+          // client-side partial matching for orderNo and customer (যদি ফিল্টার ফিল্ড ভ্যালু দেয়া থাকে)
+          let match = true;
+          if(filterOrder.value && !(data.orderNo && data.orderNo.toLowerCase().includes(filterOrder.value.trim().toLowerCase()))) {
+            match = false;
+          }
+          if(filterCustomer.value && !(data.customerName && data.customerName.toLowerCase().includes(filterCustomer.value.trim().toLowerCase()))) {
+            match = false;
+          }
+          if(match) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${counter++}</td>
+              <td>${formatDate(data.scheduleDate || "")}</td>
+              <td>${data.orderNo || ""}</td>
+              <td>${data.customerName || ""}</td>
+              <td class="wrap-text">${data.color || ""}</td>
+              <td>${data.quantity || ""}</td>
+              <td>${formatDate(data.closeDate || "")}</td>
+              <td class="wrap-text">${data.comments || ""}</td>
+              <td class="text-center">
+                <button class="ellipsis-btn" onclick="openActionModal('${doc.id}')">
+                  <i class="fa fa-ellipsis-v"></i>
+                </button>
+              </td>
+            `;
+            scheduleTableBody.appendChild(tr);
+          }
         });
       }, error => showMessage("ডাটা লোড করতে সমস্যা: " + error.message, true));
     }
 
-    /* 
-       Filter ফাংশন:  
-       - যদি শুধু filterStartDate দেওয়া থাকে, তবে সেই দিনের রেকর্ড ফিল্টার হবে।  
-       - যদি filterStartDate ও filterEndDate উভয় দেওয়া থাকে, তবে সেই রেঞ্জ অনুযায়ী ফিল্টার হবে।  
-       - অর্ডার নং ও কাস্টমার নামের ক্ষেত্রে partial matching করা হবে।
-    */
+    // Filter বাটনের জন্য: ফিল্টার ফিল্ড থেকে মান নিয়ে টেবিল রিফিল্টার করা (এই পদ্ধতি one-time get() ব্যবহার করে)
     filterBtn.addEventListener("click", () => {
       db.collection("schedules").orderBy("scheduleDate", "asc").get().then(snapshot => {
         let filteredDocs = [];
@@ -487,16 +536,13 @@
           const data = doc.data();
           let match = true;
           
-          // যদি শুরু তারিখ দেওয়া থাকে
+          // তারিখ অনুযায়ী ফিল্টার
           if(filterStartDate.value) {
-            // যদি শুধুমাত্র শুরু তারিখ দেওয়া থাকে, তাহলে scheduleDate == filterStartDate
             if (!filterEndDate.value) {
               if (data.scheduleDate !== filterStartDate.value) {
                 match = false;
               }
-            }
-            // যদি শুরু ও শেষ উভয় দিন দেওয়া থাকে, তাহলে scheduleDate রেঞ্জে থাকতে হবে
-            else {
+            } else {
               if (!(data.scheduleDate >= filterStartDate.value && data.scheduleDate <= filterEndDate.value)) {
                 match = false;
               }
@@ -547,7 +593,7 @@
       .catch(error => showMessage("ফিল্টার ত্রুটি: " + error.message, true));
     });
 
-    // Clear Filter বাটন: ইনপুটগুলো রিসেট করে সব ডাটা দেখাবে
+    // Clear Filter বাটন: ইনপুটগুলো রিসেট করে সব ডাটা দেখাবে এবং রিয়েল-টাইম লিসেনার আবার ডিফল্ট (আজকের তারিখ) অনুযায়ী চালু হবে
     clearFilterBtn.addEventListener("click", () => {
       filterStartDate.value = today;
       filterEndDate.value = "";
@@ -611,7 +657,7 @@
       }
     });
 
-    // রিয়েল-টাইম শিডিউল লোড শুরু
+    // পেজ লোডের সাথে সাথে রিয়েল-টাইম শিডিউল লোড শুরু হবে (ডিফল্ট হিসেবে আজকের তারিখ অনুযায়ী)
     listenSchedules();
   </script>
 </body>
