@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>লগইন / সাইনআপ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* Global Styles */
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 25px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+      border: none;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #555;
+    }
+    .link {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .link a {
+      color: #333;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+  </style>
+  <!-- Firebase CDN Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>লগইন</h2>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="ইমেইল" required>
+      <input type="password" id="loginPassword" placeholder="পাসওয়ার্ড" required>
+      <button type="submit">লগইন</button>
+    </form>
+
+    <h2>সাইনআপ</h2>
+    <form id="signupForm">
+      <input type="email" id="signupEmail" placeholder="ইমেইল" required>
+      <input type="password" id="signupPassword" placeholder="পাসওয়ার্ড" required>
+      <button type="submit">সাইনআপ</button>
+    </form>
+
+    <div class="link">
+      <a href="admin.html">এডমিন প্যানেল</a> | 
+      <a href="dashboard.html">ড্যাশবোর্ড</a>
+    </div>
+  </div>
+
+  <script>
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCv7vvtIkbBD-8jKVetErI53SHG-AwnNaI",
+  authDomain: "schedule-6daae.firebaseapp.com",
+  projectId: "schedule-6daae",
+  storageBucket: "schedule-6daae.firebasestorage.app",
+  messagingSenderId: "163930511065",
+  appId: "1:163930511065:web:2e6e1cb9a709955a1050c8",
+  measurementId: "G-0KCNE3REKX"
+};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // লগইন ফর্ম সাবমিশন
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          alert("লগইন সফল হয়েছে!");
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          alert("লগইন ত্রুটি: " + error.message);
+        });
+    });
+
+    // সাইনআপ ফর্ম সাবমিশন
+    document.getElementById("signupForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("signupEmail").value;
+      const password = document.getElementById("signupPassword").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          alert("সাইনআপ সফল হয়েছে!");
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          alert("সাইনআপ ত্রুটি: " + error.message);
+        });
+    });
+  </script>
+</body>
+</html>
