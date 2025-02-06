@@ -147,6 +147,9 @@
           <input type="date" id="filterDate" class="form-control" placeholder="শিডিউল তারিখ">
         </div>
         <div class="col-md-3">
+          <input type="month" id="filterMonth" class="form-control" placeholder="মাস">
+        </div>
+        <div class="col-md-3">
           <input type="text" id="filterOrder" class="form-control" placeholder="অর্ডার নং">
         </div>
         <div class="col-md-3">
@@ -154,6 +157,9 @@
         </div>
         <div class="col-md-3 d-grid">
           <button id="filterBtn" class="btn btn-info text-white">ফিল্টার করুন</button>
+        </div>
+        <div class="col-md-3 d-grid">
+          <button id="clearFilterBtn" class="btn btn-secondary">সব দেখান</button>
         </div>
       </div>
     </div>
@@ -282,9 +288,11 @@
 
     // Filter ফিল্ড রেফারেন্স
     const filterDate = document.getElementById("filterDate");
+    const filterMonth = document.getElementById("filterMonth");
     const filterOrder = document.getElementById("filterOrder");
     const filterCustomer = document.getElementById("filterCustomer");
     const filterBtn = document.getElementById("filterBtn");
+    const clearFilterBtn = document.getElementById("clearFilterBtn");
 
     // Settings Modal উপাদান
     const adminEmailSpan = document.getElementById("adminEmail");
@@ -465,55 +473,78 @@
       }, error => showMessage("ডাটা লোড করতে সমস্যা: " + error.message, true));
     }
 
-    // Filter ফাংশন (scheduleDate অনুযায়ী ক্রমানুসারে সিরিয়াল সহ)
+    // Filter ফাংশন (নির্দিষ্ট তারিখ, মাস, অর্ডার নম্বর এবং কাস্টমার নাম অনুযায়ী)
     filterBtn.addEventListener("click", () => {
-      let query = db.collection("schedules").orderBy("scheduleDate", "asc");
+      let query = db.collection("schedules");
+
+      // নির্দিষ্ট তারিখ ফিল্টার: যদি প্রদান করা থাকে
+      if (filterDate.value) {
+        query = query.where("scheduleDate", "==", filterDate.value);
+      }
+      // মাস ফিল্টার: যদি 'filterDate' ফাঁকা থাকে এবং মাস দেওয়া থাকে
+      else if (filterMonth.value) {
+        // উদাহরণ: filterMonth.value = "2025-02"
+        const startDate = filterMonth.value + "-01";
+        const nextMonthDate = new Date(filterMonth.value + "-01");
+        nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+        const endDate = nextMonthDate.toISOString().split("T")[0];
+
+        query = query.where("scheduleDate", ">=", startDate)
+                     .where("scheduleDate", "<", endDate);
+      }
+
+      // অর্ডার নম্বর ফিল্টার
+      if (filterOrder.value) {
+        query = query.where("orderNo", "==", filterOrder.value.trim());
+      }
+
+      // কাস্টমার নাম ফিল্টার
+      if (filterCustomer.value) {
+        query = query.where("customerName", "==", filterCustomer.value.trim());
+      }
+
+      // যদি কোন ফিল্টার প্রদান না করা হয়, তাহলে orderBy যুক্ত করে সবগুলো দেখানো হবে
+      query = query.orderBy("scheduleDate", "asc");
+
+      // কোয়েরি রেজাল্ট দেখানোর জন্য get() ব্যবহার করা হচ্ছে
       query.get().then(snapshot => {
-        let filteredDocs = [];
+        scheduleTableBody.innerHTML = "";
+        if (snapshot.empty) {
+          scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
+          return;
+        }
+        let counter = 1;
         snapshot.forEach(doc => {
           const data = doc.data();
-          let match = true;
-          if (filterDate.value && data.scheduleDate !== filterDate.value) {
-            match = false;
-          }
-          if (filterOrder.value && (!data.orderNo || data.orderNo.toLowerCase().indexOf(filterOrder.value.trim().toLowerCase()) === -1)) {
-            match = false;
-          }
-          if (filterCustomer.value && (!data.customerName || data.customerName.toLowerCase().indexOf(filterCustomer.value.trim().toLowerCase()) === -1)) {
-            match = false;
-          }
-          if (match) {
-            filteredDocs.push({ id: doc.id, data });
-          }
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${counter++}</td>
+            <td>${formatDate(data.scheduleDate || "")}</td>
+            <td>${data.orderNo || ""}</td>
+            <td>${data.customerName || ""}</td>
+            <td>${data.color || ""}</td>
+            <td>${data.quantity || ""}</td>
+            <td>${formatDate(data.closeDate || "")}</td>
+            <td>${data.comments || ""}</td>
+            <td class="text-center">
+              <button class="ellipsis-btn" onclick="openActionModal('${doc.id}')">
+                <i class="fa fa-ellipsis-v"></i>
+              </button>
+            </td>
+          `;
+          scheduleTableBody.appendChild(tr);
         });
-        scheduleTableBody.innerHTML = "";
-        if (filteredDocs.length === 0) {
-          scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
-        } else {
-          let counter = 1;
-          filteredDocs.forEach(item => {
-            const { id, data } = item;
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${counter++}</td>
-              <td>${formatDate(data.scheduleDate || "")}</td>
-              <td>${data.orderNo || ""}</td>
-              <td>${data.customerName || ""}</td>
-              <td>${data.color || ""}</td>
-              <td>${data.quantity || ""}</td>
-              <td>${formatDate(data.closeDate || "")}</td>
-              <td>${data.comments || ""}</td>
-              <td class="text-center">
-                <button class="ellipsis-btn" onclick="openActionModal('${id}')">
-                  <i class="fa fa-ellipsis-v"></i>
-                </button>
-              </td>
-            `;
-            scheduleTableBody.appendChild(tr);
-          });
-        }
       })
       .catch(error => showMessage("ফিল্টার ত্রুটি: " + error.message, true));
+    });
+
+    // Clear Filter বাটন: ইনপুটগুলো রিসেট করে সব ডাটা দেখাবে
+    clearFilterBtn.addEventListener("click", () => {
+      filterDate.value = "";
+      filterMonth.value = "";
+      filterOrder.value = "";
+      filterCustomer.value = "";
+      listenSchedules();
     });
 
     // Print ফিচার
