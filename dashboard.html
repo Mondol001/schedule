@@ -48,13 +48,20 @@
       padding: 15px;
       background-color: #f9f9f9;
       margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* লাইট থিমে শ্যাডো */
     }
     /* Dark mode adjustments for filter box */
     body.dark-mode .filter-box {
-      background-color: #444; /* Darker background */
-      border-color: #666;     /* Slightly lighter border */
+      background-color: #444;
+      border-color: #666;
+      box-shadow: none; /* ডার্ক মোডে সাধারণত শ্যাডো কম বা না থাকলেও ভালো দেখায় */
     }
     .filter-box .form-control {
+      margin-bottom: 10px;
+    }
+    /* Filter Info (ডাটা টেবিলের উপরের তথ্যবার) */
+    .filter-info {
+      font-weight: bold;
       margin-bottom: 10px;
     }
     /* Buttons */
@@ -161,6 +168,9 @@
       </div>
     </div>
 
+    <!-- Filter Information (বর্তমান ফিল্টার ইনফো দেখাবে) -->
+    <div id="filterInfo" class="filter-info"></div>
+
     <!-- Print Button -->
     <div class="d-flex justify-content-end">
       <button id="printBtn" class="btn-print"><i class="fa fa-print"></i> প্রিন্ট</button>
@@ -258,6 +268,21 @@
     // Set default filter start date as today
     document.getElementById("filterStartDate").value = today;
 
+    // Function to update filter information above the table
+    function updateFilterInfo() {
+      const startDate = document.getElementById("filterStartDate").value;
+      const endDate = document.getElementById("filterEndDate").value;
+      let infoText = "";
+      if (startDate && endDate) {
+        infoText = `দেখানো হচ্ছে: ${formatDate(startDate)} থেকে ${formatDate(endDate)} পর্যন্ত`;
+      } else if (startDate) {
+        infoText = `দেখানো হচ্ছে: ${formatDate(startDate)}`;
+      } else {
+        infoText = "সব ডাটা দেখানো হচ্ছে";
+      }
+      document.getElementById("filterInfo").textContent = infoText;
+    }
+
     // Function to apply filters and load schedules
     function applyFilters() {
       db.collection("schedules").orderBy("timestamp", "desc").get().then(snapshot => {
@@ -299,6 +324,9 @@
             filteredDocs.push({ id: doc.id, data });
           }
         });
+
+        // Update Filter Info text
+        updateFilterInfo();
 
         // Update Table
         const tableBody = document.querySelector("#scheduleTable tbody");
