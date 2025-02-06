@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>অ্যাকাউন্ট তৈরি করুন</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* Global Styles */
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .signup-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 350px;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    input {
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #555;
+    }
+    .message {
+      text-align: center;
+      margin-top: 10px;
+      color: red;
+    }
+    .link {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .link a {
+      text-decoration: none;
+      color: #333;
+    }
+  </style>
+  <!-- Firebase CDN Scripts (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div class="signup-container">
+    <h2>অ্যাকাউন্ট তৈরি করুন</h2>
+    <form id="signupForm">
+      <input type="text" id="displayName" placeholder="নাম" required>
+      <input type="email" id="email" placeholder="ইমেইল" required>
+      <input type="password" id="password" placeholder="পাসওয়ার্ড" required>
+      <button type="submit">সাইন আপ</button>
+    </form>
+    <div id="message" class="message"></div>
+    <div class="link">
+      <a href="index.html">লগইন পেজে যান</a>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration (আপনার প্রকল্প অনুযায়ী কনফিগারেশন পরিবর্তন করুন)
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCv7vvtIkbBD-8jKVetErI53SHG-AwnNaI",
+  authDomain: "schedule-6daae.firebaseapp.com",
+  projectId: "schedule-6daae",
+  storageBucket: "schedule-6daae.firebasestorage.app",
+  messagingSenderId: "163930511065",
+  appId: "1:163930511065:web:2e6e1cb9a709955a1050c8",
+  measurementId: "G-0KCNE3REKX"
+};
+    
+    // Firebase initialize
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // সাইন আপ ফর্ম সাবমিট হ্যান্ডলার
+    document.getElementById("signupForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const displayName = document.getElementById("displayName").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // সাইন আপ সফল হলে, ইউজারের নাম সেট করা হচ্ছে
+          const user = userCredential.user;
+          return user.updateProfile({
+            displayName: displayName
+          });
+        })
+        .then(() => {
+          document.getElementById("message").style.color = "green";
+          document.getElementById("message").textContent = "অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!";
+          // সাইন আপের পর স্বয়ংক্রিয়ভাবে লগইন করানো যেতে পারে অথবা লগইন পেজে রিডাইরেক্ট করা যেতে পারে
+          setTimeout(() => {
+            window.location.href = "index.html"; // লগইন পেজে রিডাইরেক্ট
+          }, 1500);
+        })
+        .catch((error) => {
+          document.getElementById("message").style.color = "red";
+          document.getElementById("message").textContent = error.message;
+        });
+    });
+  </script>
+</body>
+</html>
