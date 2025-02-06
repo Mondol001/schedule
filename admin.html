@@ -98,12 +98,10 @@
     </div>
 
     <h2 class="text-center mb-1">শিডিউল ম্যানেজমেন্ট</h2>
-    <!-- শিরোনামের নিচে চিকন রেখা -->
     <hr class="mb-4">
 
     <!-- শিডিউল এন্ট্রি ফর্ম (যোগ করার জন্য) -->
     <form id="scheduleForm" class="mb-4">
-      <!-- হিডেন ইনপুট (এডিট মোড ট্র্যাকের জন্য, শুধু এডিট হলে এখানে মান থাকবে) -->
       <input type="hidden" id="docId">
       <div class="row g-2">
         <div class="col-md-3">
@@ -145,14 +143,16 @@
     <!-- ইউজার ফিডব্যাক বার -->
     <div id="message" class="mb-3 text-center fw-bold"></div>
 
-    <!-- উন্নত ফিল্টার সেকশন -->
+    <!-- উন্নত ফিল্টার সেকশন (শুরু ও শেষ তারিখ) -->
     <div class="filter-section mb-3">
       <div class="row g-2">
+        <!-- শুরু তারিখ; ডিফল্ট হিসেবে আজকের তারিখ সেট করা হবে -->
         <div class="col-md-3">
-          <input type="date" id="filterDate" class="form-control" placeholder="শিডিউল তারিখ">
+          <input type="date" id="filterStartDate" class="form-control" placeholder="শুরু তারিখ">
         </div>
+        <!-- শেষ তারিখ; চাইলে নির্বাচন করা যাবে -->
         <div class="col-md-3">
-          <input type="month" id="filterMonth" class="form-control" placeholder="মাস">
+          <input type="date" id="filterEndDate" class="form-control" placeholder="শেষ তারিখ">
         </div>
         <div class="col-md-3">
           <input type="text" id="filterOrder" class="form-control" placeholder="অর্ডার নং">
@@ -169,7 +169,7 @@
       </div>
     </div>
 
-    <!-- শিডিউল টেবিল (নতুন "ক্রমিক" কলাম সহ) -->
+    <!-- শিডিউল টেবিল (ক্রমিক কলাম সহ) -->
     <div class="table-responsive">
       <table class="table table-bordered" id="scheduleTable">
         <thead class="table-light">
@@ -202,7 +202,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
           </div>
           <div class="modal-body">
-            <!-- হিডেন ইনপুট: এডিট করার ডকুমেন্ট আইডি -->
             <input type="hidden" id="editDocId">
             <div class="mb-3">
               <label for="editScheduleDate" class="form-label">শিডিউল তারিখ</label>
@@ -250,10 +249,8 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
         </div>
         <div class="modal-body">
-          <!-- এডমিন ইমেইল প্রদর্শন -->
           <p><strong>এডমিন:</strong> <span id="adminEmail"></span></p>
           <hr>
-          <!-- থিম কন্ট্রোল -->
           <div class="mb-3">
             <label for="themeSelect" class="form-label">থিম নির্বাচন করুন</label>
             <select id="themeSelect" class="form-select">
@@ -291,9 +288,9 @@
     const messageDiv = document.getElementById("message");
     const scheduleTableBody = document.querySelector("#scheduleTable tbody");
 
-    // Filter ফিল্ড রেফারেন্স
-    const filterDate = document.getElementById("filterDate");
-    const filterMonth = document.getElementById("filterMonth");
+    // Filter ফিল্ড রেফারেন্স (শুরু ও শেষ তারিখ)
+    const filterStartDate = document.getElementById("filterStartDate");
+    const filterEndDate = document.getElementById("filterEndDate");
     const filterOrder = document.getElementById("filterOrder");
     const filterCustomer = document.getElementById("filterCustomer");
     const filterBtn = document.getElementById("filterBtn");
@@ -316,8 +313,10 @@
     const editComments = document.getElementById("editComments");
     const editSubmitBtn = document.getElementById("editSubmitBtn");
 
-    // পেজ লোডের সময়, শিডিউল তারিখ ইনপুটে বর্তমান তারিখ সেট করা
-    document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+    // পেজ লোডের সময়, শিডিউল তারিখ ও filterStartDate-এ আজকের তারিখ সেট করা
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("scheduleDate").value = today;
+    filterStartDate.value = today;
 
     // থিমের সিলেকশন (localStorage থেকে থিম রিডিরেক্ট করা)
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -344,7 +343,7 @@
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
-    // শিডিউল এন্ট্রি যোগ/আপডেট ফর্ম সাবমিশন (যোগ করার জন্য)
+    // শিডিউল এন্ট্রি যোগ/আপডেট ফর্ম সাবমিশন
     scheduleForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const scheduleDate = document.getElementById("scheduleDate").value;
@@ -357,7 +356,6 @@
       const timestamp = firebase.firestore.FieldValue.serverTimestamp();
       const scheduleData = { scheduleDate, orderNo, customerName, color, quantity, closeDate, comments, timestamp };
 
-      // যদি docId ফিল্ডে মান থাকে, তাহলে এটি এডিট মোড (এখানে ফর্মটি যোগ করার জন্য ব্যবহৃত হচ্ছে না)
       const docId = docIdField.value;
       if (docId) {
         db.collection("schedules").doc(docId).update(scheduleData)
@@ -365,17 +363,16 @@
             showMessage("শিডিউল আপডেট করা হয়েছে!");
             scheduleForm.reset();
             docIdField.value = "";
-            document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+            document.getElementById("scheduleDate").value = today;
             submitBtn.textContent = "শিডিউল যোগ করুন";
           })
           .catch(error => showMessage("ত্রুটি: " + error.message, true));
       } else {
-        // নতুন এন্ট্রি
         db.collection("schedules").add(scheduleData)
           .then(() => {
             showMessage("শিডিউল যোগ করা হয়েছে!");
             scheduleForm.reset();
-            document.getElementById("scheduleDate").value = new Date().toISOString().split("T")[0];
+            document.getElementById("scheduleDate").value = today;
           })
           .catch(error => showMessage("ত্রুটি: " + error.message, true));
       }
@@ -383,7 +380,6 @@
 
     // থ্রি ডট মেনু: এডিট/ডিলিট অপশনের জন্য
     function openActionModal(docId) {
-      // এখানে prompt ব্যবহার করে এডিট (E) অথবা ডিলিট (D) নির্বাচন করা হচ্ছে
       const action = prompt("এডিট (E) অথবা ডিলিট (D) লিখুন:");
       if (action) {
         if (action.toLowerCase() === 'e') {
@@ -406,7 +402,7 @@
         .then(doc => {
           if (doc.exists) {
             const data = doc.data();
-            editScheduleDate.value = data.scheduleDate || new Date().toISOString().split("T")[0];
+            editScheduleDate.value = data.scheduleDate || today;
             editOrderNo.value = data.orderNo || "";
             editCustomerName.value = data.customerName || "";
             editColor.value = data.color || "";
@@ -421,7 +417,7 @@
         .catch(error => showMessage("ত্রুটি: " + error.message, true));
     }
 
-    // এডিট মোডালের ফর্ম সাবমিশন (শুধুমাত্র এডিট করার জন্য)
+    // এডিট মোডালের ফর্ম সাবমিশন
     editScheduleForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const scheduleDate = editScheduleDate.value;
@@ -446,7 +442,7 @@
       }
     });
 
-    // রিয়েল-টাইম শিডিউল লোডিং (scheduleDate অনুযায়ী ক্রমানুসারে)
+    // রিয়েল-টাইম শিডিউল লোডিং
     function listenSchedules(query = db.collection("schedules").orderBy("scheduleDate", "asc")) {
       query.onSnapshot(snapshot => {
         scheduleTableBody.innerHTML = "";
@@ -454,7 +450,7 @@
           scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো রেকর্ড পাওয়া যায়নি</td></tr>`;
           return;
         }
-        let counter = 1; // সিরিয়াল নম্বর গণনার জন্য
+        let counter = 1;
         snapshot.forEach(doc => {
           const data = doc.data();
           const tr = document.createElement("tr");
@@ -479,49 +475,48 @@
     }
 
     /* 
-       Filter ফাংশন: এখানে আমরা Firestore থেকে সকল ডাটা নিয়ে ক্লায়েন্ট সাইডে 
-       নির্দিষ্ট তারিখ, মাস, অর্ডার নং (partial matching সহ) এবং কাস্টমার নামের উপর ভিত্তি করে ফিল্টার করছি।
+       Filter ফাংশন:  
+       - যদি শুধু filterStartDate দেওয়া থাকে, তবে সেই দিনের রেকর্ড ফিল্টার হবে।  
+       - যদি filterStartDate ও filterEndDate উভয় দেওয়া থাকে, তবে সেই রেঞ্জ অনুযায়ী ফিল্টার হবে।  
+       - অর্ডার নং ও কাস্টমার নামের ক্ষেত্রে partial matching করা হবে।
     */
     filterBtn.addEventListener("click", () => {
-      // প্রথমে সব ডাটা নিয়ে আসা হচ্ছে (orderBy প্রয়োগ করে)
       db.collection("schedules").orderBy("scheduleDate", "asc").get().then(snapshot => {
         let filteredDocs = [];
         snapshot.forEach(doc => {
           const data = doc.data();
           let match = true;
-
-          // নির্দিষ্ট তারিখ ফিল্টার: যদি প্রদান করা থাকে
-          if(filterDate.value && data.scheduleDate !== filterDate.value) {
-            match = false;
-          }
-
-          // মাস ফিল্টার: যদি 'filterDate' ফাঁকা থাকে এবং মাস প্রদান করা থাকে
-          if(filterMonth.value && !filterDate.value) {
-            const startDate = filterMonth.value + "-01";
-            const nextMonth = new Date(filterMonth.value + "-01");
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
-            const endDate = nextMonth.toISOString().split("T")[0];
-            if (!(data.scheduleDate >= startDate && data.scheduleDate < endDate)) {
-              match = false;
+          
+          // যদি শুরু তারিখ দেওয়া থাকে
+          if(filterStartDate.value) {
+            // যদি শুধুমাত্র শুরু তারিখ দেওয়া থাকে, তাহলে scheduleDate == filterStartDate
+            if (!filterEndDate.value) {
+              if (data.scheduleDate !== filterStartDate.value) {
+                match = false;
+              }
+            }
+            // যদি শুরু ও শেষ উভয় দিন দেওয়া থাকে, তাহলে scheduleDate রেঞ্জে থাকতে হবে
+            else {
+              if (!(data.scheduleDate >= filterStartDate.value && data.scheduleDate <= filterEndDate.value)) {
+                match = false;
+              }
             }
           }
-
-          // অর্ডার নং: partial matching (lowercase এ তুলনা)
+          
+          // অর্ডার নং: partial matching
           if(filterOrder.value && !(data.orderNo && data.orderNo.toLowerCase().includes(filterOrder.value.trim().toLowerCase()))) {
             match = false;
           }
-
           // কাস্টমার নাম: partial matching
           if(filterCustomer.value && !(data.customerName && data.customerName.toLowerCase().includes(filterCustomer.value.trim().toLowerCase()))) {
             match = false;
           }
-
+          
           if(match) {
             filteredDocs.push({ id: doc.id, data });
           }
         });
 
-        // টেবিল আপডেট করা
         scheduleTableBody.innerHTML = "";
         if (filteredDocs.length === 0) {
           scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
@@ -554,8 +549,8 @@
 
     // Clear Filter বাটন: ইনপুটগুলো রিসেট করে সব ডাটা দেখাবে
     clearFilterBtn.addEventListener("click", () => {
-      filterDate.value = "";
-      filterMonth.value = "";
+      filterStartDate.value = today;
+      filterEndDate.value = "";
       filterOrder.value = "";
       filterCustomer.value = "";
       listenSchedules();
@@ -591,14 +586,13 @@
       } else {
         document.body.classList.remove("dark-mode");
       }
-      // থিম পরিবর্তনের সাথে সাথে localStorage-এ সংরক্ষণ করা
       localStorage.setItem('theme', themeSelect.value);
     });
 
     // লগআউট ফাংশন
     document.getElementById("logoutBtn").addEventListener("click", () => {
       auth.signOut().then(() => {
-        window.location.href = "index.html"; // লগইন পেজে রিডাইরেক্ট
+        window.location.href = "index.html";
       }).catch(error => {
         showMessage("লগআউট ত্রুটি: " + error.message, true);
       });
@@ -607,14 +601,13 @@
     // ইউজার অথেন্টিকেশন যাচাই: এডমিন ছাড়া অন্য ইউজার রিডাইরেক্ট
     auth.onAuthStateChanged(user => {
       if (user) {
-        // এডমিন ইমেইল সেট করুন (সেটিংস মোডালে প্রদর্শনের জন্য)
         adminEmailSpan.textContent = user.email;
         if (user.email !== "mohammadiaqub@gmail.com") {
           alert("আপনি এডমিন নন! এডমিন ড্যাশবোর্ডে প্রবেশের অনুমতি নেই।");
-          window.location.href = "dashboard.html"; // সাধারণ ইউজার ড্যাশবোর্ডে রিডাইরেক্ট
+          window.location.href = "dashboard.html";
         }
       } else {
-        window.location.href = "index.html"; // লগইন না থাকলে লগইন পেজে রিডাইরেক্ট
+        window.location.href = "index.html";
       }
     });
 
