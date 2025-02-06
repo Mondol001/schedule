@@ -78,14 +78,14 @@
 
   <!-- মেইন কন্টেইনার -->
   <div class="container container-custom">
-    <!-- Logout & Print Buttons (প্রিন্ট ও লগআউট ফিচার মূল পৃষ্ঠায়) -->
+    <!-- Logout & Print Buttons -->
     <div class="d-flex justify-content-between mb-3">
       <button id="printBtn" class="btn btn-secondary"><i class="fa fa-print"></i> প্রিন্ট</button>
     </div>
 
     <h2 class="text-center mb-4">শিডিউল ম্যানেজমেন্ট</h2>
 
-    <!-- শিডিউল এন্ট্রি ফর্ম (যোগ করার জন্য, মূল পৃষ্ঠায়) -->
+    <!-- শিডিউল এন্ট্রি ফর্ম (যোগ করার জন্য) -->
     <form id="scheduleForm" class="mb-4">
       <!-- হিডেন ইনপুট (এডিট মোড ট্র্যাকের জন্য, শুধু এডিট হলে এখানে মান থাকবে) -->
       <input type="hidden" id="docId">
@@ -147,11 +147,12 @@
       </div>
     </div>
 
-    <!-- শিডিউল টেবিল -->
+    <!-- শিডিউল টেবিল (নতুন "ক্রমিক" কলাম সহ) -->
     <div class="table-responsive">
       <table class="table table-bordered" id="scheduleTable">
         <thead class="table-light">
           <tr>
+            <th>ক্রমিক</th>
             <th>শিডিউল তারিখ</th>
             <th>অর্ডার নং</th>
             <th>কাস্টমার নাম</th>
@@ -380,8 +381,7 @@
 
     // থ্রি ডট মেনু: এডিট/ডিলিট অপশনের জন্য
     function openActionModal(docId) {
-      // ডিলিট ও এডিট অপশন সহ একটি ছোট মেনু (এখানে শুধুমাত্র এডিট ও ডিলিট ফাংশনালিটি রয়েছে)
-      // আপনি চাইলে এখানে custom confirmation dialog বা dropdown ব্যবহার করতে পারেন।
+      // এখানে prompt ব্যবহার করে এডিট (E) অথবা ডিলিট (D) নির্বাচন করা হচ্ছে
       const action = prompt("এডিট (E) অথবা ডিলিট (D) লিখুন:");
       if (action) {
         if (action.toLowerCase() === 'e') {
@@ -444,18 +444,20 @@
       }
     });
 
-    // রিয়েল-টাইম শিডিউল লোডিং (onSnapshot)
-    function listenSchedules(query = db.collection("schedules").orderBy("timestamp", "desc")) {
+    // রিয়েল-টাইম শিডিউল লোডিং (scheduleDate অনুযায়ী ক্রমানুসারে)
+    function listenSchedules(query = db.collection("schedules").orderBy("scheduleDate", "asc")) {
       query.onSnapshot(snapshot => {
         scheduleTableBody.innerHTML = "";
         if (snapshot.empty) {
-          scheduleTableBody.innerHTML = `<tr><td colspan="8" class="text-center">কোনো রেকর্ড পাওয়া যায়নি</td></tr>`;
+          scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো রেকর্ড পাওয়া যায়নি</td></tr>`;
           return;
         }
+        let counter = 1; // সিরিয়াল নম্বর গণনার জন্য
         snapshot.forEach(doc => {
           const data = doc.data();
           const tr = document.createElement("tr");
           tr.innerHTML = `
+            <td>${counter++}</td>
             <td>${data.scheduleDate || ""}</td>
             <td>${data.orderNo || ""}</td>
             <td>${data.customerName || ""}</td>
@@ -474,9 +476,9 @@
       }, error => showMessage("ডাটা লোড করতে সমস্যা: " + error.message, true));
     }
 
-    // Filter ফাংশন
+    // Filter ফাংশন (scheduleDate অনুযায়ী ক্রমানুসারে সিরিয়াল সহ)
     filterBtn.addEventListener("click", () => {
-      let query = db.collection("schedules").orderBy("timestamp", "desc");
+      let query = db.collection("schedules").orderBy("scheduleDate", "asc");
       query.get().then(snapshot => {
         let filteredDocs = [];
         snapshot.forEach(doc => {
@@ -497,12 +499,14 @@
         });
         scheduleTableBody.innerHTML = "";
         if (filteredDocs.length === 0) {
-          scheduleTableBody.innerHTML = `<tr><td colspan="8" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
+          scheduleTableBody.innerHTML = `<tr><td colspan="9" class="text-center">কোনো মিল পাওয়া যায়নি</td></tr>`;
         } else {
+          let counter = 1;
           filteredDocs.forEach(item => {
             const { id, data } = item;
             const tr = document.createElement("tr");
             tr.innerHTML = `
+              <td>${counter++}</td>
               <td>${data.scheduleDate || ""}</td>
               <td>${data.orderNo || ""}</td>
               <td>${data.customerName || ""}</td>
