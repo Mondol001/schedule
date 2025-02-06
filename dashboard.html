@@ -230,7 +230,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal (থিম কন্ট্রোল, এডমিন ইমেইল, এবং ইউজার ম্যানেজমেন্ট) -->
+  <!-- Settings Modal (থিম কন্ট্রোল এবং এডমিন ইমেইল) -->
   <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -249,42 +249,6 @@
               <option value="light">লাইট</option>
               <option value="dark">ডার্ক</option>
             </select>
-          </div>
-          <hr>
-          <!-- ইউজার ম্যানেজমেন্ট -->
-          <div class="text-center">
-            <button id="viewUsersBtn" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#allUsersModal">
-              <i class="fa fa-users"></i> সব ইউজার দেখুন
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- All Users Modal (সব ইউজারের তালিকা ও ডিলিট অপশন) -->
-  <div class="modal fade" id="allUsersModal" tabindex="-1" aria-labelledby="allUsersModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="allUsersModalLabel">সকল ইউজার</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="বন্ধ"></button>
-        </div>
-        <div class="modal-body">
-          <div class="table-responsive">
-            <table class="table table-bordered" id="usersTable">
-              <thead class="table-light">
-                <tr>
-                  <th>ইউজার আইডি</th>
-                  <th>ইমেইল</th>
-                  <th>নাম</th>
-                  <th>একশন</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Firestore থেকে ইউজার ডাটা লোড হবে -->
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
@@ -325,9 +289,6 @@
     // Settings Modal উপাদান
     const adminEmailSpan = document.getElementById("adminEmail");
     const themeSelect = document.getElementById("themeSelect");
-
-    // All Users Modal উপাদান
-    const usersTableBody = document.querySelector("#usersTable tbody");
 
     // Edit Modal উপাদান
     const editModal = new bootstrap.Modal(document.getElementById("editModal"));
@@ -589,46 +550,6 @@
       localStorage.setItem('theme', themeSelect.value);
     });
 
-    // ইউজার ম্যানেজমেন্ট: সব ইউজার লোড (উদাহরণস্বরূপ, Firestore-এ 'users' কালেকশন থেকে)
-    function loadAllUsers() {
-      db.collection("users").get()
-        .then(snapshot => {
-          usersTableBody.innerHTML = "";
-          if (snapshot.empty) {
-            usersTableBody.innerHTML = `<tr><td colspan="4" class="text-center">কোনো ইউজার পাওয়া যায়নি</td></tr>`;
-            return;
-          }
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${doc.id}</td>
-              <td>${data.email || ""}</td>
-              <td>${data.name || ""}</td>
-              <td>
-                <button class="btn btn-danger btn-sm" onclick="deleteUser('${doc.id}')">
-                  <i class="fa fa-trash"></i>
-                </button>
-              </td>
-            `;
-            usersTableBody.appendChild(tr);
-          });
-        })
-        .catch(error => showMessage("ইউজার লোড ত্রুটি: " + error.message, true));
-    }
-
-    // ইউজার ডিলিট ফাংশন (ডেমো হিসেবে; বাস্তবে নিরাপত্তা যাচাই প্রয়োজন)
-    function deleteUser(userId) {
-      if (confirm("আপনি কি এই ইউজারটি ডিলিট করতে চান?")) {
-        db.collection("users").doc(userId).delete()
-          .then(() => {
-            showMessage("ইউজার মুছে ফেলা হয়েছে!");
-            loadAllUsers();
-          })
-          .catch(error => showMessage("ডিলিট ত্রুটি: " + error.message, true));
-      }
-    }
-
     // লগআউট ফাংশন
     document.getElementById("logoutBtn").addEventListener("click", () => {
       auth.signOut().then(() => {
@@ -651,9 +572,6 @@
         window.location.href = "index.html"; // লগইন না থাকলে লগইন পেজে রিডাইরেক্ট
       }
     });
-
-    // যখন All Users Modal খোলে, ইউজার লোড করুন
-    document.getElementById("allUsersModal").addEventListener("show.bs.modal", loadAllUsers);
 
     // রিয়েল-টাইম শিডিউল লোড শুরু
     listenSchedules();
