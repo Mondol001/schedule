@@ -176,23 +176,25 @@
       <button id="printBtn" class="btn-print"><i class="fa fa-print"></i> প্রিন্ট</button>
     </div>
 
-    <!-- Schedule Table -->
-    <table id="scheduleTable">
-      <thead>
-        <tr>
-          <th>শিডিউল তারিখ</th>
-          <th>অর্ডার নং</th>
-          <th>কাস্টমার নাম</th>
-          <th>কালার</th>
-          <th>কন্টিটি</th>
-          <th>ক্লোজ তারিখ</th>
-          <th>মন্তব্য</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Firestore থেকে রিয়েল-টাইমে শিডিউল লোড হবে -->
-      </tbody>
-    </table>
+    <!-- Schedule Table wrapped in a responsive container -->
+    <div class="table-responsive">
+      <table id="scheduleTable" class="table">
+        <thead>
+          <tr>
+            <th>শিডিউল তারিখ</th>
+            <th>অর্ডার নং</th>
+            <th>কাস্টমার নাম</th>
+            <th>কালার</th>
+            <th>কন্টিটি</th>
+            <th>ক্লোজ তারিখ</th>
+            <th>মন্তব্য</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Firestore থেকে রিয়েল-টাইমে শিডিউল লোড হবে -->
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Settings Modal (থিম কন্ট্রোল এবং ইউজার ইমেইল প্রদর্শন) -->
